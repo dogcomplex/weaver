@@ -7,6 +7,7 @@ import { graphsRouter } from './routes/graphs.js'
 import { runtimeRouter } from './routes/runtime.js'
 import { schemaRouter } from './routes/schema.js'
 import { adaptersRouter } from './routes/adapters.js'
+import { servicesRouter, setServiceBroadcast } from './routes/services.js'
 import { errorHandler } from './middleware/errors.js'
 import { setupFileWatcher } from './watcher.js'
 import { log } from './logger.js'
@@ -65,6 +66,9 @@ app.use('/api/schema', schemaRouter)
 // Adapter import/export (ComfyUI, n8n)
 app.use('/api/adapters', adaptersRouter)
 
+// Service management (start/stop ComfyUI, etc.)
+app.use('/api/services', servicesRouter)
+
 // Error handling
 app.use(errorHandler)
 
@@ -85,6 +89,9 @@ export function broadcast(data: unknown): void {
     }
   }
 }
+
+// Wire broadcast to services module
+setServiceBroadcast(broadcast)
 
 // Watch data/graphs/ for external changes
 setupFileWatcher(broadcast)

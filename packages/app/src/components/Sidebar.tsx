@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { useWeave } from '../hooks/useWeave.js'
 import { useGraphApi } from '../hooks/useGraphApi.js'
 import { toSerialized, deserializeWeave } from '#weaver/core'
+import { ServicePanel } from './ServicePanel.js'
 
 interface GraphSummary {
   id: string
@@ -340,6 +341,8 @@ export function Sidebar({ onTraceResult, onQueueResult }: SidebarProps) {
           </span>
         </div>
       </div>
+
+      <ServicePanel />
 
       <div style={{ padding: '8px 12px', borderTop: '1px solid #222', fontSize: 10, color: '#444' }}>
         Double-click canvas to mark a knot.

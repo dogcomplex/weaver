@@ -28,7 +28,7 @@
       "data": {
         "comfyui_class_type": "CLIPTextEncode",
         "inputs": {
-          "text": "a beautiful mountain landscape, night time, photorealistic, 8k"
+          "text": "a beautiful mountain landscape, night time, aurora borealis, photorealistic, 8k"
         }
       }
     },
