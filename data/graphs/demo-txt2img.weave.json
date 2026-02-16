@@ -1,0 +1,216 @@
+{
+  "id": "demo-txt2img",
+  "name": "ComfyUI txt2img",
+  "knots": {
+    "1": {
+      "id": "1",
+      "label": "Load Checkpoint",
+      "type": "CheckpointLoaderSimple",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "data": {
+        "comfyui_class_type": "CheckpointLoaderSimple",
+        "inputs": {
+          "ckpt_name": "v1-5-pruned-emaonly.safetensors"
+        }
+      }
+    },
+    "2": {
+      "id": "2",
+      "label": "CLIP Text (Positive)",
+      "type": "CLIPTextEncode",
+      "position": {
+        "x": 300,
+        "y": -80
+      },
+      "data": {
+        "comfyui_class_type": "CLIPTextEncode",
+        "inputs": {
+          "text": "a beautiful mountain landscape, night time, photorealistic, 8k"
+        }
+      }
+    },
+    "3": {
+      "id": "3",
+      "label": "CLIP Text (Negative)",
+      "type": "CLIPTextEncode",
+      "position": {
+        "x": 300,
+        "y": 120
+      },
+      "data": {
+        "comfyui_class_type": "CLIPTextEncode",
+        "inputs": {
+          "text": "blurry, low quality, ugly, deformed"
+        }
+      }
+    },
+    "4": {
+      "id": "4",
+      "label": "Empty Latent Image",
+      "type": "EmptyLatentImage",
+      "position": {
+        "x": 300,
+        "y": 300
+      },
+      "data": {
+        "comfyui_class_type": "EmptyLatentImage",
+        "inputs": {
+          "width": 512,
+          "height": 512,
+          "batch_size": 1
+        }
+      }
+    },
+    "5": {
+      "id": "5",
+      "label": "KSampler",
+      "type": "KSampler",
+      "position": {
+        "x": 600,
+        "y": 60
+      },
+      "data": {
+        "comfyui_class_type": "KSampler",
+        "inputs": {
+          "seed": 42,
+          "steps": 20,
+          "cfg": 7.5,
+          "sampler_name": "euler_ancestral",
+          "scheduler": "normal",
+          "denoise": 1
+        }
+      }
+    },
+    "6": {
+      "id": "6",
+      "label": "VAE Decode",
+      "type": "VAEDecode",
+      "position": {
+        "x": 900,
+        "y": 60
+      },
+      "data": {
+        "comfyui_class_type": "VAEDecode",
+        "inputs": {}
+      }
+    },
+    "7": {
+      "id": "7",
+      "label": "Save Image",
+      "type": "SaveImage",
+      "position": {
+        "x": 1150,
+        "y": 60
+      },
+      "data": {
+        "comfyui_class_type": "SaveImage",
+        "inputs": {
+          "filename_prefix": "weaver_output"
+        }
+      }
+    }
+  },
+  "threads": {
+    "t1": {
+      "id": "t1",
+      "source": "1",
+      "target": "2",
+      "label": "CLIP",
+      "data": {
+        "input_name": "clip",
+        "source_slot": 1
+      }
+    },
+    "t2": {
+      "id": "t2",
+      "source": "1",
+      "target": "3",
+      "label": "CLIP",
+      "data": {
+        "input_name": "clip",
+        "source_slot": 1
+      }
+    },
+    "t3": {
+      "id": "t3",
+      "source": "1",
+      "target": "5",
+      "label": "MODEL",
+      "data": {
+        "input_name": "model",
+        "source_slot": 0
+      }
+    },
+    "t4": {
+      "id": "t4",
+      "source": "2",
+      "target": "5",
+      "label": "CONDITIONING",
+      "data": {
+        "input_name": "positive",
+        "source_slot": 0
+      }
+    },
+    "t5": {
+      "id": "t5",
+      "source": "3",
+      "target": "5",
+      "label": "CONDITIONING",
+      "data": {
+        "input_name": "negative",
+        "source_slot": 0
+      }
+    },
+    "t6": {
+      "id": "t6",
+      "source": "4",
+      "target": "5",
+      "label": "LATENT",
+      "data": {
+        "input_name": "latent_image",
+        "source_slot": 0
+      }
+    },
+    "t7": {
+      "id": "t7",
+      "source": "5",
+      "target": "6",
+      "label": "LATENT",
+      "data": {
+        "input_name": "samples",
+        "source_slot": 0
+      }
+    },
+    "t8": {
+      "id": "t8",
+      "source": "1",
+      "target": "6",
+      "label": "VAE",
+      "data": {
+        "input_name": "vae",
+        "source_slot": 2
+      }
+    },
+    "t9": {
+      "id": "t9",
+      "source": "6",
+      "target": "7",
+      "label": "IMAGE",
+      "data": {
+        "input_name": "images",
+        "source_slot": 0
+      }
+    }
+  },
+  "strands": {},
+  "thresholds": [],
+  "metadata": {
+    "created": "2025-01-01T00:00:00.000Z",
+    "modified": "2025-01-01T00:00:00.000Z",
+    "version": 1,
+    "description": "SD 1.5 txt2img pipeline: Checkpoint → CLIP encode (positive + negative) → KSampler → VAE Decode → Save. Export to ComfyUI via GET /api/adapters/comfyui/export/demo-txt2img"
+  }
+}

@@ -1,0 +1,126 @@
+{
+  "id": "demo-webhook-to-slack",
+  "name": "Webhook to Slack (n8n)",
+  "knots": {
+    "webhook": {
+      "id": "webhook",
+      "label": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "position": { "x": 0, "y": 0 },
+      "data": {
+        "n8n_type": "n8n-nodes-base.webhook",
+        "n8n_type_version": 1,
+        "parameters": {
+          "httpMethod": "POST",
+          "path": "weaver-hook",
+          "responseMode": "onReceived"
+        }
+      }
+    },
+    "set_fields": {
+      "id": "set_fields",
+      "label": "Set Fields",
+      "type": "n8n-nodes-base.set",
+      "position": { "x": 300, "y": 0 },
+      "data": {
+        "n8n_type": "n8n-nodes-base.set",
+        "n8n_type_version": 2,
+        "parameters": {
+          "values": {
+            "string": [
+              {
+                "name": "message",
+                "value": "=New event from Weaver: {{ $json.body.event }}"
+              }
+            ]
+          }
+        }
+      }
+    },
+    "if_important": {
+      "id": "if_important",
+      "label": "Is Important?",
+      "type": "n8n-nodes-base.if",
+      "position": { "x": 550, "y": 0 },
+      "data": {
+        "n8n_type": "n8n-nodes-base.if",
+        "n8n_type_version": 1,
+        "parameters": {
+          "conditions": {
+            "string": [
+              {
+                "value1": "={{ $json.body.priority }}",
+                "operation": "equals",
+                "value2": "high"
+              }
+            ]
+          }
+        }
+      }
+    },
+    "slack_notify": {
+      "id": "slack_notify",
+      "label": "Slack: Send Message",
+      "type": "n8n-nodes-base.slack",
+      "position": { "x": 850, "y": -60 },
+      "data": {
+        "n8n_type": "n8n-nodes-base.slack",
+        "n8n_type_version": 2,
+        "parameters": {
+          "channel": "#weaver-alerts",
+          "text": "={{ $json.message }}"
+        },
+        "credentials": {
+          "slackApi": "Slack account"
+        }
+      }
+    },
+    "log_it": {
+      "id": "log_it",
+      "label": "Log (No-Op)",
+      "type": "n8n-nodes-base.noOp",
+      "position": { "x": 850, "y": 100 },
+      "data": {
+        "n8n_type": "n8n-nodes-base.noOp",
+        "n8n_type_version": 1,
+        "parameters": {}
+      }
+    }
+  },
+  "threads": {
+    "n8n_link_0": {
+      "id": "n8n_link_0",
+      "source": "webhook",
+      "target": "set_fields",
+      "data": { "output_type": "main", "target_type": "main", "target_index": 0 }
+    },
+    "n8n_link_1": {
+      "id": "n8n_link_1",
+      "source": "set_fields",
+      "target": "if_important",
+      "data": { "output_type": "main", "target_type": "main", "target_index": 0 }
+    },
+    "n8n_link_2": {
+      "id": "n8n_link_2",
+      "source": "if_important",
+      "target": "slack_notify",
+      "label": "true",
+      "data": { "output_type": "main", "target_type": "main", "target_index": 0 }
+    },
+    "n8n_link_3": {
+      "id": "n8n_link_3",
+      "source": "if_important",
+      "target": "log_it",
+      "label": "false",
+      "data": { "output_type": "main", "target_type": "main", "target_index": 1 }
+    }
+  },
+  "strands": {},
+  "thresholds": [],
+  "metadata": {
+    "created": "2025-01-01T00:00:00.000Z",
+    "modified": "2025-01-01T00:00:00.000Z",
+    "version": 1,
+    "description": "n8n-style automation: Webhook receives POST → Set Fields → If important → Slack alert (or log). Export to n8n via GET /api/adapters/n8n/export/demo-webhook-to-slack"
+  }
+}

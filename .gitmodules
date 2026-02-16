@@ -1,0 +1,4 @@
+[submodule "ComfyUI-LOKI"]
+	path = ComfyUI-LOKI
+	url = https://github.com/dogcomplex/ComfyUI-LOKI.git
+

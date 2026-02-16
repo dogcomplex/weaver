@@ -1,0 +1,44 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+services/comfyui/ComfyUI_windows_portable/
+
+# Build output
+dist/
+*.tsbuildinfo
+
+# Runtime output
+data/output/
+
+
+# Environment
+.env
+.env.local
+
+# Data (exports are generated, not source)
+data/exports/*
+!data/exports/.gitkeep
+
+# Services (installed locally, too large for git)
+services/comfyui/ComfyUI/
+services/comfyui/venv/
+services/n8n/node_modules/
+services/n8n/.n8n/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# Windows reserved device filename accidentally created sometimes
+nul
+NUL
+
+# Logs
+*.log

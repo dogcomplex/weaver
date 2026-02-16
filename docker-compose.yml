@@ -1,0 +1,40 @@
+version: "3.9"
+
+services:
+  weaver:
+    build: .
+    ports:
+      - "4444:4444"
+    volumes:
+      - ./data:/app/data
+    environment:
+      - NODE_ENV=production
+      - PORT=4444
+      - LOG_LEVEL=info
+
+  # ComfyUI — requires NVIDIA GPU passthrough
+  # Uncomment and configure when GPU is available
+  # comfyui:
+  #   image: ghcr.io/ai-dock/comfyui:latest
+  #   ports:
+  #     - "4188:4188"
+  #   volumes:
+  #     - ./services/comfyui/models:/workspace/ComfyUI/models
+  #   deploy:
+  #     resources:
+  #       reservations:
+  #         devices:
+  #           - driver: nvidia
+  #             count: 1
+  #             capabilities: [gpu]
+
+  # n8n — workflow automation
+  # Uncomment when needed
+  # n8n:
+  #   image: n8nio/n8n
+  #   ports:
+  #     - "5678:5678"
+  #   volumes:
+  #     - ./services/n8n/.n8n:/home/node/.n8n
+  #   environment:
+  #     - N8N_PORT=5678
