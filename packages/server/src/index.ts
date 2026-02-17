@@ -3,6 +3,7 @@ import cors from 'cors'
 import path from 'path'
 import { createServer } from 'http'
 import { WebSocketServer } from 'ws'
+import { createProxyMiddleware } from 'http-proxy-middleware'
 import { graphsRouter } from './routes/graphs.js'
 import { runtimeRouter } from './routes/runtime.js'
 import { schemaRouter } from './routes/schema.js'
@@ -13,10 +14,35 @@ import { setupFileWatcher } from './watcher.js'
 import { log } from './logger.js'
 
 const PORT = parseInt(process.env.PORT ?? '4444', 10)
+const COMFYUI_PORT = parseInt(process.env.COMFYUI_PORT ?? '4188', 10)
 const OUTPUT_DIR = path.resolve(process.cwd(), 'data', 'output')
 
 const app = express()
 app.use(cors())
+
+// Proxy ComfyUI through our server (before body parsing).
+// This makes the iframe same-origin so we can call loadGraphData() on it.
+const comfyProxy = createProxyMiddleware({
+  target: `http://127.0.0.1:${COMFYUI_PORT}`,
+  changeOrigin: true,
+  pathRewrite: { '^/comfyui': '' },
+  ws: true,
+  on: {
+    proxyReq: (proxyReq) => {
+      // Rewrite Origin header so ComfyUI's origin check passes
+      proxyReq.setHeader('Origin', `http://127.0.0.1:${COMFYUI_PORT}`)
+    },
+    error: (_err, _req, res) => {
+      // ComfyUI not running — return a simple offline page
+      if ('writeHead' in res) {
+        (res as any).writeHead(502, { 'Content-Type': 'text/html' })
+        ;(res as any).end('<html><body style="background:#0a0a0a;color:#666;font-family:system-ui;display:flex;align-items:center;justify-content:center;height:100vh;margin:0"><div>ComfyUI is not running. Start it from the Services panel.</div></body></html>')
+      }
+    },
+  },
+})
+app.use('/comfyui', comfyProxy)
+
 app.use(express.json({ limit: '10mb' }))
 
 // Serve generated images from data/output/ (primary) and ComfyUI default output (fallback)
@@ -74,6 +100,14 @@ app.use(errorHandler)
 
 // HTTP + WebSocket server
 const server = createServer(app)
+
+// Proxy ComfyUI WebSocket connections (/comfyui/ws)
+server.on('upgrade', (req, socket, head) => {
+  if (req.url?.startsWith('/comfyui')) {
+    comfyProxy.upgrade!(req, socket as any, head)
+  }
+})
+
 const wss = new WebSocketServer({ server, path: '/ws' })
 
 wss.on('connection', (ws) => {

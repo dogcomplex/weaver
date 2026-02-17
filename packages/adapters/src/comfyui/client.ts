@@ -7,7 +7,7 @@ export interface ComfyUIClientConfig {
 
 const DEFAULT_CONFIG: ComfyUIClientConfig = {
   host: '127.0.0.1',
-  port: Number(process.env.COMFYUI_PORT) || 4188,
+  port: Number(typeof process !== 'undefined' && process.env?.COMFYUI_PORT ? process.env.COMFYUI_PORT : 4188),
 }
 
 export class ComfyUIClient {

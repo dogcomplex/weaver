@@ -155,12 +155,26 @@ router.post('/comfyui/queue/:id', async (req, res, next) => {
     const promptId = result.prompt_id
     log.info({ id: req.params.id, promptId }, 'Queued to ComfyUI')
 
-    // Poll history until the prompt completes (max 120s)
+    // Poll history until the prompt completes (max 120s, retries on transient errors)
     const deadline = Date.now() + 120_000
     let history: Record<string, any> = {}
+    let consecutiveErrors = 0
     while (Date.now() < deadline) {
       await new Promise(r => setTimeout(r, 500))
-      history = await client.getHistory(promptId)
+      try {
+        history = await client.getHistory(promptId)
+        consecutiveErrors = 0
+      } catch (pollErr: any) {
+        consecutiveErrors++
+        const code = pollErr.code || pollErr.cause?.code || ''
+        // Retry on transient network errors (ECONNRESET, ECONNREFUSED, etc.)
+        if (consecutiveErrors <= 5 && /ECONN|EPIPE|ETIME|fetch failed/i.test(String(code) + pollErr.message)) {
+          log.warn({ promptId, error: code || pollErr.message, attempt: consecutiveErrors }, 'History poll transient error, retrying')
+          await new Promise(r => setTimeout(r, 1000))
+          continue
+        }
+        throw pollErr
+      }
       if (history[promptId]?.status?.completed) break
       if (history[promptId]?.status?.status_str === 'error') {
         res.status(500).json({ error: 'ComfyUI execution failed', promptId, history: history[promptId] })

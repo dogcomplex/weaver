@@ -17,11 +17,20 @@
     "composite": true,
     "paths": {
       "#weaver/core": ["../core/src/index.ts"],
-      "#weaver/core/*": ["../core/src/*"]
+      "#weaver/core/*": ["../core/src/*"],
+      "#weaver/runtime": ["../runtime/src/index.ts"],
+      "#weaver/runtime/*": ["../runtime/src/*"],
+      "#weaver/adapters": ["../adapters/src/index.ts"],
+      "#weaver/adapters/*": ["../adapters/src/*"],
+      "#weaver/glamour": ["../glamour/src/index.ts"],
+      "#weaver/glamour/*": ["../glamour/src/*"]
     }
   },
   "references": [
-    { "path": "../core" }
+    { "path": "../core" },
+    { "path": "../runtime" },
+    { "path": "../adapters" },
+    { "path": "../glamour" }
   ],
   "include": ["src"]
 }

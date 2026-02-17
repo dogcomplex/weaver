@@ -4,6 +4,7 @@
     { "path": "packages/core" },
     { "path": "packages/runtime" },
     { "path": "packages/adapters" },
+    { "path": "packages/glamour" },
     { "path": "packages/server" },
     { "path": "packages/mcp" }
   ]

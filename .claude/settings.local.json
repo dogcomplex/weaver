@@ -46,7 +46,9 @@
       "Bash(npm run typecheck:*)",
       "Bash(python3:*)",
       "Bash(taskkill:*)",
-      "Bash(tasklist:*)"
+      "Bash(tasklist:*)",
+      "Bash(cmd /c:*)",
+      "Bash(npx vite:*)"
     ]
   }
 }

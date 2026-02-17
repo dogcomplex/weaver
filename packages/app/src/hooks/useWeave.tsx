@@ -1,9 +1,10 @@
-import { createContext, useContext, useReducer, useCallback, type ReactNode } from 'react'
-import type { Weave, KnotInput, KnotId, ThreadId, GateCondition } from '#weaver/core'
+import { createContext, useContext, useReducer, type ReactNode } from 'react'
+import type { Weave } from '#weaver/core'
 import {
   createWeave,
 } from '#weaver/core'
 import * as ops from '#weaver/core'
+import type { WeaveAction } from '#weaver/glamour'
 
 interface WeaveState {
   current: Weave
@@ -11,21 +12,6 @@ interface WeaveState {
   future: Weave[]
   saved: boolean
 }
-
-type WeaveAction =
-  | { type: 'mark'; input: KnotInput }
-  | { type: 'thread'; source: KnotId; target: KnotId }
-  | { type: 'snip'; threadId: ThreadId }
-  | { type: 'cut'; knotId: KnotId }
-  | { type: 'gate'; threadId: ThreadId; condition: GateCondition }
-  | { type: 'load'; weave: Weave }
-  | { type: 'new'; name: string }
-  | { type: 'undo' }
-  | { type: 'redo' }
-  | { type: 'markSaved' }
-  | { type: 'updatePositions'; positions: Map<KnotId, { x: number; y: number }> }
-  | { type: 'updateKnot'; knotId: KnotId; changes: { label?: string; type?: string; data?: Record<string, unknown> } }
-  | { type: 'updateThread'; threadId: ThreadId; changes: { label?: string; data?: Record<string, unknown>; gate?: GateCondition | null } }
 
 function reducer(state: WeaveState, action: WeaveAction): WeaveState {
   switch (action.type) {

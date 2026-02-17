@@ -1,11 +1,8 @@
 import { useState, useCallback } from 'react'
+import type { Selection } from '#weaver/glamour'
 
-export type SelectionType = 'knot' | 'thread'
-
-export interface Selection {
-  type: SelectionType
-  id: string
-}
+// Re-export for backward compat
+export type { Selection, SelectionType } from '#weaver/glamour'
 
 export function useSelection() {
   const [selection, setSelection] = useState<Selection | null>(null)

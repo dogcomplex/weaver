@@ -56,7 +56,8 @@ export function ServicePanel() {
     setLogs(prev => ({ ...prev, [id]: [] }))
     setExpanded(id) // auto-expand console on start
     try {
-      const res = await fetch(`/api/services/${id}/start`, { method: 'POST' })
+      // Always force=true to auto-kill stale processes on the port
+      const res = await fetch(`/api/services/${id}/start?force=true`, { method: 'POST' })
       const result = await res.json()
       if (result.status === 'starting' || result.status === 'already_running') {
         setServices(prev => ({
@@ -75,6 +76,27 @@ export function ServicePanel() {
         [id]: { ...prev[id], status: 'stopped' },
       }))
     } catch {}
+  }, [])
+
+  const restartService = useCallback(async (id: string) => {
+    setLogs(prev => ({ ...prev, [id]: [] }))
+    setExpanded(id)
+    try {
+      await fetch(`/api/services/${id}/stop`, { method: 'POST' })
+    } catch {}
+    // Brief delay to let stop complete, then force-start
+    setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/services/${id}/start?force=true`, { method: 'POST' })
+        const result = await res.json()
+        if (result.status === 'starting') {
+          setServices(prev => ({
+            ...prev,
+            [id]: { ...prev[id], status: 'starting' },
+          }))
+        }
+      } catch {}
+    }, 500)
   }, [])
 
   const loadLogs = useCallback(async (id: string) => {
@@ -111,13 +133,18 @@ export function ServicePanel() {
               {id} <span style={{ color: '#555' }}>:{svc.port}</span>
             </span>
             {svc.status === 'stopped' || svc.status === 'error' ? (
-              <button onClick={() => startService(id)} style={actionBtnStyle} title="Start">
+              <button onClick={() => startService(id)} style={actionBtnStyle} title="Start (auto-kills stale processes)">
                 ▶
               </button>
             ) : (
-              <button onClick={() => stopService(id)} style={{ ...actionBtnStyle, color: '#c55' }} title="Stop">
-                ■
-              </button>
+              <>
+                <button onClick={() => restartService(id)} style={restartBtnStyle} title="Restart (kill & relaunch)">
+                  ↻
+                </button>
+                <button onClick={() => stopService(id)} style={{ ...actionBtnStyle, color: '#c55' }} title="Stop">
+                  ■
+                </button>
+              </>
             )}
           </div>
 
@@ -193,6 +220,17 @@ const actionBtnStyle: React.CSSProperties = {
   cursor: 'pointer',
   fontSize: 10,
   padding: '1px 5px',
+  lineHeight: 1,
+}
+
+const restartBtnStyle: React.CSSProperties = {
+  background: 'none',
+  border: '1px solid #333',
+  borderRadius: 3,
+  color: '#ca4',
+  cursor: 'pointer',
+  fontSize: 12,
+  padding: '0px 4px',
   lineHeight: 1,
 }
 

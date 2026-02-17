@@ -2,9 +2,11 @@
 
 ## Context
 
-Weaver is a visual graph programming platform built across 8 phases — core types, runtime, adapters, server, frontend, MCP, and ComfyUI integration. It's fully functional: you can create knots, connect them, save/load, trace execution, queue to ComfyUI, and see generated images inline. **63 tests pass, server + frontend run, ComfyUI portable with SD 1.5 generates images end-to-end.**
+Weaver is a visual graph programming platform built across 8 phases — core types, runtime, adapters, server, frontend, MCP, and ComfyUI integration. It's fully functional: you can create knots, connect them, save/load, trace execution, queue to ComfyUI, and see generated images inline. **101 tests pass, server + frontend run, ComfyUI portable with SD 1.5 generates images end-to-end.**
 
-However, the frontend is currently a **workflow viewer**, not a full editor. You can't edit knot properties, delete things, see type-specific visuals, or build workflows from scratch in the UI. More importantly — the UI is just another node-and-wire graph editor.
+**Phase 1 (Classic Editor) is complete.** Selection, properties panel, deletion, context menus, knot type registry, type-specific rendering, keyboard shortcuts, undo/redo, validation, and ComfyUI service management from the web UI all work.
+
+**Phase 2 (Glamour Engine) is complete.** The `packages/glamour/` package provides the abstraction layer for pluggable renderers. ClassicRenderer extracted from Canvas.tsx, ViewTabs with three-tab switching (Unveiled / ComfyUI / Glamour), wave animation engine, and the foundation for Phase 3's PixiJS glamour renderer.
 
 **The vision**: Transform Weaver into something that has never been built — a system where workflows manifest as **living, interactive metaphorical worlds**. Factories with conveyor belts, gardens with irrigation, kingdoms with roads and messengers. Non-programmers understand what's happening intuitively because the visual metaphor *clicks*. AI (Claude) builds workflows from natural language, explains them in metaphorical terms, and generates custom visual assets using ComfyUI itself.
 
@@ -142,178 +144,132 @@ Both adapters implement the same interface — any Weave can be translated to ei
 
 ---
 
-## Phase 1: Complete Classic Editor (table stakes)
+## Phase 1: Complete Classic Editor ✅ COMPLETE
 
-Make the node editor fully usable before building metaphors on top.
+All Phase 1 features implemented and working:
 
-### 1A. Selection + Properties Panel
-- `packages/app/src/hooks/useSelection.ts` — ephemeral `{ type: 'knot'|'thread', id }` state
-- `packages/app/src/components/PropertiesPanel.tsx` — right sidebar showing selected knot/thread fields, editable inputs (label, type, data key-value pairs, gate expressions)
-- `packages/app/src/components/fields/DataEditor.tsx` — JSON key-value editor for `knot.data.inputs`
-- Add `updateKnot` and `updateThread` actions to `useWeave` reducer
-- Wire `onNodeClick`/`onEdgeClick`/`onPaneClick` in Canvas.tsx
-- **This is critical**: users currently can't change prompts, parameters, or any settings in the UI
+- **1A. Selection + Properties Panel** — `useSelection` hook, `PropertiesPanel` with knot/thread editing, `DataEditor` for key-value pairs, `updateKnot`/`updateThread` actions
+- **1B. Deletion** — Delete/Backspace removes selected knot (`cut`) or thread (`snip`)
+- **1C. Context Menus** — Right-click on knots (Edit Label, Duplicate, Delete), threads (Edit Label, Add/Edit Gate, Delete), canvas (Add Knot)
+- **1D. Knot Type Registry** — `KnotTypeDefinition` with categories, colors, ports. ComfyUI types auto-registered. `CATEGORY_META` for visual styling.
+- **1E. Type-Specific Rendering** — `KnotNode.tsx` renders with category colors, type labels, styled handles
+- **1F. Keyboard Shortcuts** — Delete, Ctrl+Z/Y undo/redo, Ctrl+S save, Escape clear selection
+- **1G. Validation** — `validateWeave()` with error/warning visual indicators
+- **ComfyUI Service Management** — Start/stop ComfyUI from sidebar, live log streaming, queue to ComfyUI
 
-### 1B. Deletion
-- Delete key removes selected knot (via existing `cut` operation) or thread (via `snip`)
-- Canvas.tsx gets `onKeyDown` handler checking selection state
-- Operations already exist and are tested in core — just needs UI wiring
-
-### 1C. Context Menus
-- `packages/app/src/components/ContextMenu.tsx` — positioned at cursor, dismissed on click-away
-- Knot menu: Delete, Duplicate, Edit Label, Veil
-- Thread menu: Delete, Add Gate, Edit Label
-- Canvas menu: Add Knot (by type), Paste
-- Wire `onNodeContextMenu`, `onEdgeContextMenu`, `onPaneContextMenu` in Canvas.tsx
-
-### 1D. Knot Type Registry
-- `packages/core/src/knot-types.ts` — `KnotTypeDefinition` interface with `type`, `label`, `category`, `defaultData`, `color`, `inputs: PortDefinition[]`, `outputs: PortDefinition[]`
-- Registry auto-populates from imported ComfyUI workflows (introspects `class_type` + slot info)
-- Built-in types: `default`, `input`, `output`, `gate`, `veiled`
-- **Extensibility hook**: Phase 2 will add `metaphorMapping` field to `KnotTypeDefinition`
-- **n8n awareness**: Registry can also populate from n8n node definitions (same `KnotTypeDefinition`, different source)
-
-### 1E. Type-Specific Knot Rendering
-- Rework `KnotNode.tsx` — look up type in registry, color-code by category, show typed input/output handles with labels
-- Thread labels show connection type (MODEL, CLIP, LATENT, IMAGE)
-- Gated threads get diamond icon or dashed line
-
-### 1F. Inline Editing + Keyboard Shortcuts
-- Double-click knot label → inline edit field
-- Ctrl+S save, Delete/Backspace delete, Ctrl+A select all, Ctrl+C/V copy/paste
-- `packages/app/src/hooks/useKeyboardShortcuts.ts`
-
-### 1G. Validation
-- `packages/core/src/validation.ts` — `validateWeave()` checks required inputs, type compatibility, orphans
-- Visual indicators on knots (red border for errors, yellow for warnings)
-
-### Verification
-- Can build a ComfyUI txt2img workflow entirely from the UI (add typed knots, connect them, edit prompts)
-- Delete, undo, redo all work
-- Properties panel shows and edits all knot data
-- `npm test` still passes 63+ tests
+**63 tests pass. All Phase 1 features verified working.**
 
 ---
 
-## Phase 2: Glamour Engine (the critical abstraction)
+## Phase 2: Glamour Engine ✅ COMPLETE
 
-Decouple graph data from visual representation. The Glamour system veils underlying complexity with interactive metaphorical facades. This is the architectural keystone.
+Decoupled graph data from visual representation. Built the abstraction layer that makes renderer swapping possible.
 
-### 2A. New Package: `packages/glamour/`
-Add `#weaver/glamour` to root `package.json` imports.
+### 2A. Package: `packages/glamour/` ✅
 
 ```
-packages/glamour/src/
-  types.ts              — Glamour, GlamourTheme, GlamourElement, Facade, etc.
-  registry.ts           — manages available renderers and themes
-  classic-renderer.ts   — wraps existing ReactFlow canvas as a WeaveRenderer (the "unveiled" view)
-  glamour-renderer.ts   — PixiJS-based renderer consuming GlamourTheme
-  scene.ts              — scene graph (elements → sprites, connections → paths)
-  facade.ts             — interactive controls mapped to graph operations
-  animation.ts          — WaveAnimator: TraceResult → AnimationTimeline
-  layout.ts             — position mapping from graph space to scene space
-  asset-resolver.ts     — hash-based asset lookup with fallback chain (from LOKI prototype)
-  themes/loom/          — first glamour theme (Phase 3)
+packages/glamour/
+  tsconfig.json
+  src/
+    index.ts              — re-exports all types and functions
+    types.ts              — ~250 lines: all glamour type definitions
+    registry.ts           — RendererRegistry + ThemeRegistry
+    animation.ts          — buildTimeline + interpolateHighlights
+    asset-resolver.ts     — hash-based asset resolution with fallback chain
+    __tests__/
+      registry.test.ts    — 9 tests
+      animation.test.ts   — 15 tests
+      asset-resolver.test.ts — 14 tests
 ```
 
-### 2B. Core Interface: `WeaveRenderer`
+Added `#weaver/glamour` to root `package.json` imports, all tsconfig references, Vite aliases, and vitest config.
+
+### 2B. Core Interface: `WeaveRendererProps` ✅
+
 ```typescript
-interface WeaveRenderer {
-  id: string
-  name: string
-  Component: React.ComponentType<WeaveRendererProps>
-  editable: boolean
-}
 interface WeaveRendererProps {
   weave: Weave
   selection: Selection | null
   traceResult: TraceResult | null
-  onWeaveChange: (action: WeaveAction) => void
-  onSelectionChange: (sel: Selection | null) => void
-}
-```
-Every renderer gets the same props. The Properties Panel, Sidebar, and TracePanel are **renderer-agnostic** — they work with Weave data, not visual representation. Only the central canvas area swaps between renderers.
-
-### 2C. Core Interface: `GlamourTheme`
-```typescript
-interface GlamourTheme {
-  id: string; name: string; description: string
-
-  /** Enchant a knot — produce its glamoured visual representation */
-  enchantKnot(knot, context): GlamourElement
-
-  /** Enchant a thread — produce its glamoured visual path */
-  enchantThread(thread, src, tgt, context): GlamourConnection
-
-  /** Enchant a wave — produce its data flow animation */
-  enchantWave(wave, knot, context): GlamourAnimation
-
-  /** Can this theme glamour a subgraph as a single entity? */
-  canMerge(knotIds: KnotId[], context): boolean
-
-  /** Enchant a subgraph — merge multiple knots into one glamour element */
-  enchantSubgraph(knotIds: KnotId[], context): GlamourElement
-
-  /** Describe the weave in this theme's metaphorical language */
-  describeWeave(weave): string
-  describeKnot(knot, weave): string
-
-  /** Scene config: background, layout, ambient effects */
-  sceneConfig: GlamourSceneConfig
-
-  /** System prompt for AI to explain/build in this theme's vocabulary */
-  aiSystemPrompt: string
+  animationState: AnimationState | null
+  onWeaveAction: (action: WeaveAction) => void
+  onSelectionChange: (selection: Selection | null) => void
 }
 ```
 
-A `GlamourElement` has:
-- `visual`: sprite, SVG, HTML component, OR `{ type: 'generated', prompt }` (AI-generated via ComfyUI)
-- `facade`: interactive controls mapped to graph operations — a turning gear for numeric params, a color wheel for colors, etc. A perfect facade represents all underlying capabilities in metaphorical form.
-- `veils`: which knot IDs this glamour covers (1 for single, N for merged subgraph)
-- `label`, `tooltip`, `position`, `size`
-- `depth`: how many levels of unveiling are possible below this glamour
+`WeaveAction` (13-member union) and `Selection`/`SelectionType` extracted from app hooks to `#weaver/glamour`. App hooks re-export for backward compatibility.
 
-### 2D. Asset Resolution (from LOKI prototype)
-Port the hash-based asset system:
-```typescript
-interface GlamourAssetResolver {
-  /** Generate deterministic hash from knot configuration */
-  hashKnot(knot: Knot): string
+### 2C. Core Interface: `GlamourTheme` ✅
 
-  /** Resolve asset with fallback chain: hash → type → theme default → aurora */
-  resolveAsset(knotId: KnotId, knotType: string, hash: string): GlamourAsset
+Full type definition with `enchantKnot`, `enchantThread`, `enchantWave`, `canMerge`, `enchantSubgraph`, `describeWeave`, `describeKnot`, `sceneConfig`, and `aiSystemPrompt`. Runtime implementation deferred to Phase 3 (needs PixiJS renderer).
 
-  /** Cache management */
-  invalidate(knotId: KnotId): void
-}
-```
-Upgrade from LOKI's polling to WebSocket-based push notifications for asset updates.
+### 2D. Asset Resolution ✅
 
-### 2E. Extract Classic Renderer (the "Unveiled" view)
-Refactor current `Canvas.tsx` internals into `ClassicRenderer` implementing `WeaveRendererProps`. Canvas.tsx becomes a thin shell that delegates to the active renderer. The Classic view IS the first level of unveiling — it shows the raw graph without any glamour.
+`GlamourAssetResolver` class with:
+- `hashKnotConfig(knot)` — deterministic djb2 hash from LOKI prototype
+- 4-level fallback chain: exact hash → knot type → theme default → aurora gradient
+- Register, invalidate, clear operations
+- Configurable base path
 
-### 2F. Tab Switching: Glamour ↔ Unveiled
-- `packages/app/src/components/ViewTabs.tsx` — "Glamour" | "Unveiled" tab bar above canvas
-- Mount/unmount renderers on switch (save viewport state in refs for instant restore)
-- Both tabs share the same Properties Panel, Sidebar, TracePanel
-- Future: unveiling can be partial — click a single glamour element to unveil just that part while the rest stays glamoured
+### 2E. ClassicRenderer Extraction ✅
 
-### 2G. Facade Interaction (Bidirectional)
-When user interacts with a glamour facade (turns a gear, adjusts a slider dial, clicks a color vat) → facade maps the interaction to a graph operation (updateKnot data, connect, delete). The change propagates back and the glamour re-renders. Facades are the key to "perfect glamours" — every underlying parameter should have a metaphorical control surface that feels like it *belongs* in the scene.
+Surgical extraction of `Canvas.tsx` into `packages/app/src/renderers/ClassicRenderer.tsx`:
+- Implements `WeaveRendererProps` interface
+- No internal `useWeave()` — receives weave + dispatch as props
+- `ReactFlowProvider` moved inside (only ClassicRenderer uses `useReactFlow()`)
+- Consumes `animationState?.activeKnots/activeThreads` for highlight rendering
+- `Canvas.tsx` replaced with backward-compat re-export
 
-### 2H. Wave Animation Engine
-- `WaveAnimator` converts `TraceResult` → `AnimationTimeline` (keyframes with positions along paths)
-- Classic/Unveiled renderer: highlights nodes/edges with colored pulses
-- Glamour renderer: moves sprites along connection paths (shuttles, products, water, messengers)
+Highlight rendering added to:
+- `KnotNode.tsx` — CSS box-shadow glow (color from highlight, pulse animation)
+- `ThreadEdge.tsx` — animated stroke color/width, glow layer, dash progress
+
+### 2F. Three-Tab Switching: Unveiled / ComfyUI / Glamour ✅
+
+`ViewMode = 'unveiled' | 'comfyui' | 'glamour'`
+
+**ViewTabs component** — tab bar above canvas with three tabs:
+- **Unveiled** (active) — ClassicRenderer showing raw Weaver graph
+- **ComfyUI** (enabled) — native ComfyUI graph view
+- **Glamour** (disabled, "Phase 3" badge) — placeholder for PixiJS renderer
+
+**ComfyUIRenderer** — shows the current Weave in ComfyUI's native format:
+- When ComfyUI service is running: embedded iframe loading ComfyUI's web UI on :4188
+- When ComfyUI is offline: formatted JSON viewer showing the `toComfyUIApi()` output with collapsible per-node sections, syntax highlighting, and node counts
+- Status indicator shows service state (running/starting/stopped/error)
+
+**App.tsx restructured** — `ViewTabs` + conditional renderer mounting. Shared `rendererProps` object. All panels (Sidebar, Properties, Trace, Image) are renderer-agnostic.
+
+### 2G. Facade Interaction ✅ (Types only)
+
+`FacadeDefinition`, `FacadeControl` (8 control types: dial/slider/toggle/select/color/text/button/display), `FacadeBinding` with knot data path bindings, transforms, min/max/step. Runtime interaction deferred to Phase 3 (facades need a Glamour renderer to render them).
+
+### 2H. Wave Animation Engine ✅
+
+**`packages/glamour/src/animation.ts`**:
+- `buildTimeline(traceResult, options?)` — converts TraceResult → AnimationTimeline with colored events per step (wave=#4af, gate pass=#4a4, gate block=#c44, arrive=#4a4)
+- `interpolateHighlights(timeline, progress)` — returns Maps of KnotHighlight and ThreadHighlight at any 0-1 progress position
+
+**`packages/app/src/hooks/useWaveAnimation.ts`**:
+- `requestAnimationFrame` loop driving progress 0→1 over timeline duration
+- Auto-plays when `traceResult` changes
+- Returns `{ animationState, play, stop }`
+
+Wired into `App.tsx` — `useWaveAnimation(traceResult)` feeds `animationState` to all renderers.
 
 ### Verification
-- Tab switching works: Glamour ↔ Unveiled
-- Selection, properties editing, deletion all work in both views
-- `npm test` passes with new glamour package tests
+
+- **101 tests pass** (63 existing + 38 new glamour tests)
+- `npm run typecheck` clean across all packages
+- Tab switching: Unveiled ↔ ComfyUI ↔ Glamour (disabled)
+- Unveiled tab: all Phase 1 features work unchanged
+- ComfyUI tab: shows iframe when service running, JSON fallback otherwise
+- Glamour tab: shows Phase 3 placeholder
+- Wave animation: trace result → knots/threads highlight with colored glows
 
 ---
 
-## Phase 3: First Glamour — "The Loom"
+## Phase 3: First Glamour — "The Loom" + ComfyUI Infrastructure
 
 The weaving lexicon from CLAUDE.md IS the first glamour theme. The names we already use become literal visual elements. This glamour should be fractal — zoom into the heddle frame and it contains a smaller loom of its own.
 
@@ -376,12 +332,79 @@ The weaving lexicon from CLAUDE.md IS the first glamour theme. The names we alre
 - Keep LOKI's aurora gradient as fallback while Loom assets load
 - Shared asset pipeline: same SVGs, same hash-based resolution
 
+### 3G. ComfyUI Infrastructure: Model Management + Workflow Templates
+
+Phase 2 added the ComfyUI native graph tab. Phase 3 builds the infrastructure to make ComfyUI fully functional for diverse workflows beyond the basic SD 1.5 setup.
+
+**Approach: Stay ComfyUI-native.** Use ComfyUI Manager (the community-standard extension) rather than building custom model management.
+
+#### Install ComfyUI Manager
+- Add to `services/comfyui/install.bat`: `git clone https://github.com/ltdrdata/ComfyUI-Manager custom_nodes/ComfyUI-Manager`
+- Enables in-browser model downloading, custom node installation, workflow dependency resolution
+- ComfyUI Manager auto-detects missing models when loading a workflow and offers to download them
+
+#### Model Auto-Provisioning
+Server endpoint `POST /api/services/comfyui/provision` that:
+- Accepts a list of required models (checkpoints, LoRAs, upscalers, ControlNets)
+- Uses ComfyUI Manager's API or direct HuggingFace/Civitai downloads
+- Reports progress via WebSocket
+- Key models to pre-provision for glamour asset generation:
+  - SDXL base + refiner (high-quality asset generation)
+  - SD 1.5 (already installed — fast iteration)
+  - A face model (for portrait workflows)
+  - An upscaler (Real-ESRGAN or similar)
+
+#### Workflow Templates
+Curated ComfyUI-native workflow files:
+- Store in `data/workflows/` as `.comfyui.json` files (native ComfyUI format)
+- Auto-import to Weave format on first load
+- Templates for common tasks:
+  - `txt2img-sd15.comfyui.json` (basic, already have as demo)
+  - `txt2img-sdxl.comfyui.json` (high quality)
+  - `img2img.comfyui.json` (image editing for glamour asset refinement)
+  - `inpainting.comfyui.json` (targeted edits)
+  - `upscale.comfyui.json` (enhance generated assets)
+  - `controlnet-depth.comfyui.json` (structured generation)
+- Each template specifies required models → provision system downloads them automatically
+
+#### Workflow Dependency Resolution
+When loading a ComfyUI workflow:
+- Parse required custom nodes and models
+- Check which are installed
+- If missing: prompt user to install via ComfyUI Manager (or auto-install if pre-approved)
+- Critical for sharing workflows — they should "just work"
+
+#### Glamour Asset Generation Pipelines
+Special workflows for generating glamour visuals:
+- `glamour-asset-gen.comfyui.json` — generates theme-appropriate icons/sprites for knot types
+- Uses ControlNet for consistent style, LoRA for theme-specific aesthetics
+- Triggered by `GlamourVisual { type: 'generated', prompt }` in theme definitions
+- Output cached in `data/output/glamour-assets/` with hash-based filenames (from LOKI prototype)
+
 ### Verification
 - Load demo-txt2img → switch to Glamour tab → see the workflow as a loom scene
 - Click loom elements → selects corresponding knot → Properties Panel works
 - Turn a gear/adjust a facade control → underlying knot data changes
 - Run trace → shuttles visually carry data across the loom
 - Switch to Unveiled tab → same graph, classic node rendering
+- ComfyUI Manager installed and functional
+- Workflow templates auto-import and resolve dependencies
+
+---
+
+## Phase 3+: ComfyUI Native Graph Tab Evolution
+
+The ComfyUI tab added in Phase 2 is the foundation. It evolves in later phases:
+
+### Bidirectional Editing (Phase 3+)
+Changes made in the ComfyUI iframe propagate back to the Weave via `fromComfyUIWeb()`. This creates a live bridge: edit in Weaver's Unveiled view OR in ComfyUI's native UI, both stay in sync. The ComfyUI tab becomes a full editing environment, not just a viewer.
+
+### Unveiling Stack (Phase 5)
+The ComfyUI tab becomes one layer in the unveiling stack:
+```
+Glamour → Unveiled (Weaver graph) → ComfyUI (native graph) → Code (Python)
+```
+Each level is a tab showing the same workflow at a different abstraction depth. The tabs represent unveiling: strip away the glamour to see nodes, strip away nodes to see ComfyUI's native format, strip that away to see Python code.
 
 ---
 
@@ -446,11 +469,11 @@ The weaving lexicon from CLAUDE.md IS the first glamour theme. The names we alre
 - This is the ultimate expression of fractal consistency: the glamour holds from world → district → building → room → workbench → tool → individual operation
 
 ### 5D. Code View Tab (Deepest Unveil)
-- Third tab alongside Glamour and Unveiled: "Code"
+- Fourth tab alongside Glamour, Unveiled, and ComfyUI: "Code"
 - Shows generated Python/TypeScript representation of the workflow
-- This is the deepest level of unveiling — past the glamour, past the node graph, to the actual code
+- This is the deepest level of unveiling — past the glamour, past the node graph, past ComfyUI, to the actual code
 - Read-only initially, later bidirectional (edit code → update graph)
-- Represents the fractal principle: Glamour → Nodes → Code → (eventually) Machine Code
+- Completes the unveiling stack: Glamour → Unveiled → ComfyUI → Code → (eventually) Machine Code
 
 ### 5E. Mixed Glamours
 - Different parts of the same weave can use different glamour themes
@@ -476,53 +499,63 @@ The weaving lexicon from CLAUDE.md IS the first glamour theme. The names we alre
 
 ## Critical Files Reference
 
-| File | Role | Modified In |
-|------|------|------------|
-| `packages/core/src/types.ts` | Foundation types (Knot, Thread, Weave) | Phase 1D |
+| File | Role | Phase |
+|------|------|-------|
+| `packages/core/src/types.ts` | Foundation types (Knot, Thread, Weave) | 1D |
 | `packages/core/src/operations.ts` | Pure graph operations (11 ops, tested) | — |
-| `packages/core/src/knot-types.ts` | **NEW** KnotTypeDefinition + registry | Phase 1D |
-| `packages/core/src/validation.ts` | **NEW** Weave validation | Phase 1G |
-| `packages/app/src/components/Canvas.tsx` | Graph canvas (→ thin renderer shell) | Phase 1, 2E |
-| `packages/app/src/components/KnotNode.tsx` | Knot rendering (→ type-specific) | Phase 1E |
-| `packages/app/src/components/PropertiesPanel.tsx` | **NEW** Selected element editor | Phase 1A |
-| `packages/app/src/components/ContextMenu.tsx` | **NEW** Right-click menus | Phase 1C |
-| `packages/app/src/components/ViewTabs.tsx` | **NEW** Glamour/Unveiled tab switching | Phase 2F |
-| `packages/app/src/components/AIChatPanel.tsx` | **NEW** AI chat interface | Phase 4A |
-| `packages/app/src/hooks/useWeave.tsx` | State management + undo/redo | Phase 1A |
-| `packages/app/src/hooks/useSelection.ts` | **NEW** Ephemeral selection state | Phase 1A |
-| `packages/app/src/lib/xyflow-bridge.ts` | Weave ↔ XYFlow translation | Phase 2E |
-| `packages/glamour/src/types.ts` | **NEW** Glamour, GlamourTheme, Facade interfaces | Phase 2A |
-| `packages/glamour/src/asset-resolver.ts` | **NEW** Hash-based asset lookup (from LOKI) | Phase 2D |
-| `packages/glamour/src/classic-renderer.ts` | **NEW** ReactFlow as "Unveiled" renderer | Phase 2E |
-| `packages/glamour/src/glamour-renderer.ts` | **NEW** PixiJS glamour renderer | Phase 3D |
-| `packages/glamour/src/themes/loom/` | **NEW** First glamour theme | Phase 3B |
-| `packages/server/src/routes/ai.ts` | **NEW** Claude API proxy | Phase 4A |
-| `ComfyUI-LOKI/nodes/glamour/` | Existing prototype (refine alongside) | Phase 3F+ |
+| `packages/core/src/knot-types.ts` | KnotTypeDefinition + registry | 1D ✅ |
+| `packages/core/src/validation.ts` | Weave validation | 1G ✅ |
+| `packages/glamour/src/types.ts` | All glamour type definitions (~250 lines) | 2A ✅ |
+| `packages/glamour/src/registry.ts` | RendererRegistry + ThemeRegistry | 2A ✅ |
+| `packages/glamour/src/animation.ts` | buildTimeline + interpolateHighlights | 2H ✅ |
+| `packages/glamour/src/asset-resolver.ts` | Hash-based asset lookup (from LOKI) | 2D ✅ |
+| `packages/app/src/renderers/ClassicRenderer.tsx` | ReactFlow "Unveiled" renderer | 2E ✅ |
+| `packages/app/src/renderers/ComfyUIRenderer.tsx` | ComfyUI native graph view | 2F ✅ |
+| `packages/app/src/components/ViewTabs.tsx` | Three-tab view switching | 2F ✅ |
+| `packages/app/src/hooks/useWaveAnimation.ts` | rAF-driven animation playback | 2H ✅ |
+| `packages/app/src/components/Canvas.tsx` | Backward-compat re-export | 2E ✅ |
+| `packages/app/src/components/KnotNode.tsx` | Knot rendering + highlight glow | 1E, 2E ✅ |
+| `packages/app/src/components/ThreadEdge.tsx` | Thread rendering + highlight stroke | 1E, 2E ✅ |
+| `packages/app/src/components/PropertiesPanel.tsx` | Selected element editor | 1A ✅ |
+| `packages/app/src/components/ContextMenu.tsx` | Right-click menus | 1C ✅ |
+| `packages/app/src/hooks/useWeave.tsx` | State management + undo/redo | 1A ✅ |
+| `packages/app/src/hooks/useSelection.ts` | Ephemeral selection state | 1A ✅ |
+| `packages/app/src/lib/xyflow-bridge.ts` | Weave ↔ XYFlow + highlights | 2E ✅ |
+| `packages/app/src/App.tsx` | Root shell with ViewTabs + renderers | 2F ✅ |
+| `packages/glamour/src/glamour-renderer.ts` | **Phase 3** PixiJS glamour renderer | 3D |
+| `packages/glamour/src/themes/loom/` | **Phase 3** First glamour theme | 3B |
+| `packages/app/src/components/AIChatPanel.tsx` | **Phase 4** AI chat interface | 4A |
+| `packages/server/src/routes/ai.ts` | **Phase 4** Claude API proxy | 4A |
+| `ComfyUI-LOKI/nodes/glamour/` | Existing prototype (refine alongside) | 3F+ |
 
 ---
 
 ## Execution Order
 
 ```
-Phase 1A-C, 1F (Selection, Props, Delete, Context, Shortcuts) ── parallel
-Phase 1D (Type Registry) ── independent
-Phase 1E (Type Rendering) ── depends on 1D
-Phase 1G (Validation) ── depends on 1D
+Phase 1A-C, 1F (Selection, Props, Delete, Context, Shortcuts) ── ✅ COMPLETE
+Phase 1D (Type Registry) ── ✅ COMPLETE
+Phase 1E (Type Rendering) ── ✅ COMPLETE
+Phase 1G (Validation) ── ✅ COMPLETE
                 ↓
-Phase 2A-B (Glamour types + package) ── can overlap with late Phase 1
-Phase 2C-D (Asset Resolution, Interfaces) ── depends on 2A
-Phase 2E-F (Extract Classic/Unveiled, Tab Switch) ── depends on 2A
-Phase 2G-H (Facade Interaction, Animation) ── depends on 2A
+Phase 2A-B (Glamour types + package) ── ✅ COMPLETE
+Phase 2C-D (Asset Resolution, Interfaces) ── ✅ COMPLETE
+Phase 2E-F (Extract Classic/Unveiled, Tab Switch, ComfyUI view) ── ✅ COMPLETE
+Phase 2G-H (Facade types, Wave Animation) ── ✅ COMPLETE
                 ↓
-Phase 3A (PixiJS setup) ── depends on 2E
+Phase 3A (PixiJS setup) ── depends on 2E ← NEXT
 Phase 3B-E (Loom glamour + renderer) ── depends on 2A + 3A
 Phase 3F (ComfyUI-LOKI backport) ── depends on 3B
+Phase 3G (ComfyUI Manager + model provisioning + workflow templates) ── can parallel with 3A-E
                 ↓
 Phase 4A-D (AI chat, glamour narration, asset gen) ── partially parallel with Phase 3
                 ↓
 Phase 5 (Multiple glamours, world system, code view, n8n) ── depends on all above
 ```
 
-## Starting Now: Phase 1
+## Test Coverage
 
-The immediate next session implements Phase 1A-1G. The properties panel is the highest-priority single item — it unlocks the ability to actually edit workflows without touching JSON.
+- **packages/core**: 41 tests (operations, helpers, serialization)
+- **packages/runtime**: 22 tests (trace, gate-eval)
+- **packages/glamour**: 38 tests (registry, animation, asset-resolver)
+- **Total: 101 tests, all passing**

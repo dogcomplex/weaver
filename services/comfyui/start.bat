@@ -11,7 +11,7 @@ if exist ComfyUI_windows_portable\run_nvidia_gpu.bat (
     echo Starting ComfyUI portable...
     echo Output directory: %OUTPUT_DIR%
     cd ComfyUI_windows_portable
-    .\python_embeded\python.exe -s ComfyUI\main.py --listen 127.0.0.1 --port 4188 --output-directory "%OUTPUT_DIR%"
+    .\python_embeded\python.exe -s ComfyUI\main.py --listen 127.0.0.1 --port 4188 --output-directory "%OUTPUT_DIR%" --enable-cors-header "*"
     goto :eof
 )
 
@@ -19,7 +19,7 @@ REM Fallback: venv-based install
 if exist venv\Scripts\activate.bat (
     echo Starting ComfyUI from venv...
     call venv\Scripts\activate.bat
-    python ComfyUI\main.py --listen 127.0.0.1 --port 4188 --output-directory "%OUTPUT_DIR%"
+    python ComfyUI\main.py --listen 127.0.0.1 --port 4188 --output-directory "%OUTPUT_DIR%" --enable-cors-header "*"
     goto :eof
 )
 
