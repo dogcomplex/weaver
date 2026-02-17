@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { ClassicRenderer } from './renderers/ClassicRenderer.js'
 import { ComfyUIRenderer } from './renderers/ComfyUIRenderer.js'
 import { GlamourRenderer } from './renderers/GlamourRenderer.js'
@@ -12,7 +12,7 @@ import { ErrorBoundary } from './components/ErrorBoundary.js'
 import { WeaveProvider, useWeave } from './hooks/useWeave.js'
 import { useSelection } from './hooks/useSelection.js'
 import { useWaveAnimation } from './hooks/useWaveAnimation.js'
-import type { WeaveAction, Selection, ViewMode } from '#weaver/glamour'
+import type { WeaveAction, Selection, ViewMode, MetaphorManifest } from '#weaver/glamour'
 
 interface QueueResult {
   prompt_id: string
@@ -31,6 +31,27 @@ function AppInner() {
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([])
   const [chatToolCalls, setChatToolCalls] = useState<ToolCall[]>([])
   const [chatSessionId, setChatSessionId] = useState<string | null>(null)
+
+  // Active manifest theme from AI (null = use default LoomTheme)
+  const [activeManifest, setActiveManifest] = useState<MetaphorManifest | null>(null)
+
+  // WebSocket listener for glamour theme changes
+  useEffect(() => {
+    const ws = new WebSocket(`ws://${window.location.hostname}:4444/ws`)
+
+    ws.onmessage = (event) => {
+      try {
+        const msg = JSON.parse(event.data)
+        if (msg.type === 'glamour-theme-changed' && msg.manifest) {
+          setActiveManifest(msg.manifest)
+        }
+      } catch {
+        // Ignore parse errors
+      }
+    }
+
+    return () => { ws.close() }
+  }, [])
 
   // Wave animation: auto-plays when trace result changes
   const { animationState } = useWaveAnimation(traceResult)
@@ -96,7 +117,7 @@ function AppInner() {
               <ComfyUIRenderer {...rendererProps} />
             )}
             {viewMode === 'glamour' && (
-              <GlamourRenderer {...rendererProps} />
+              <GlamourRenderer {...rendererProps} activeManifest={activeManifest} />
             )}
           </ErrorBoundary>
           {traceResult && (

@@ -18,10 +18,10 @@
 
 import { useRef, useEffect, useState, useCallback, useMemo } from 'react'
 import { Application, Container, Graphics, Text, TextStyle, Assets, Sprite, Texture, Rectangle, type FederatedPointerEvent } from 'pixi.js'
-import type { WeaveRendererProps, GlamourElement, GlamourConnection } from '#weaver/glamour'
+import type { WeaveRendererProps, GlamourElement, GlamourConnection, GlamourVisual } from '#weaver/glamour'
 import type { KnotId } from '#weaver/core'
-import { LoomTheme } from '#weaver/glamour'
-import type { EnchantContext } from '#weaver/glamour'
+import { LoomTheme, ManifestTheme, buildKnotIdMap } from '#weaver/glamour'
+import type { EnchantContext, MetaphorManifest } from '#weaver/glamour'
 
 // ─── Types ──────────────────────────────────────────────────────
 
@@ -75,7 +75,23 @@ async function loadSvgTexture(path: string): Promise<Texture> {
   }
 }
 
+/** Load a PNG/image texture from a URL (for sprite visuals) */
+async function loadSpriteTexture(url: string): Promise<Texture> {
+  if (textureCache.has(url)) return textureCache.get(url)!
+  try {
+    const texture = await Assets.load(url)
+    textureCache.set(url, texture)
+    return texture
+  } catch {
+    return Texture.EMPTY
+  }
+}
+
 // ─── Component ──────────────────────────────────────────────────
+
+interface GlamourRendererExtraProps extends WeaveRendererProps {
+  activeManifest?: MetaphorManifest | null
+}
 
 export function GlamourRenderer({
   weave,
@@ -83,7 +99,8 @@ export function GlamourRenderer({
   animationState,
   onWeaveAction,
   onSelectionChange,
-}: WeaveRendererProps) {
+  activeManifest,
+}: GlamourRendererExtraProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const appRef = useRef<Application | null>(null)
   const worldRef = useRef<Container | null>(null)
@@ -100,8 +117,14 @@ export function GlamourRenderer({
   const [facadeData, setFacadeData] = useState<Map<KnotId, { element: GlamourElement; worldX: number; worldY: number }>>(new Map())
   const facadeContainerRef = useRef<HTMLDivElement>(null)
 
-  // Theme instance
-  const theme = LoomTheme
+  // Theme instance — dynamic: ManifestTheme if activeManifest, else LoomTheme
+  const theme = useMemo(() => {
+    if (activeManifest) {
+      const knotIdMap = buildKnotIdMap(weave)
+      return new ManifestTheme(activeManifest, knotIdMap)
+    }
+    return LoomTheme
+  }, [activeManifest, weave])
 
   // Build enchant context
   const enchantContext: EnchantContext = useMemo(() => ({
@@ -387,7 +410,7 @@ export function GlamourRenderer({
         world.addChild(knotContainer)
         existingKnots.set(knotId, { container: knotContainer, knotId, element })
 
-        // Async: load SVG texture and create sprite
+        // Async: load visual asset based on visual type
         if (element.visual.type === 'svg') {
           const svgPath = element.visual.path
           const capturedSize = element.size
@@ -397,13 +420,32 @@ export function GlamourRenderer({
               const sprite = new Sprite(texture)
               sprite.label = 'svg-sprite'
               sprite.anchor.set(0.5, 0.5)
-              // Scale sprite to fit the element size
               sprite.width = capturedSize.width
               sprite.height = capturedSize.height
-              // Insert behind label but in front of background
               knotContainer.addChildAt(sprite, 1)
             })
           )
+        } else if (element.visual.type === 'sprite') {
+          // Load PNG/image from URL
+          const spriteUrl = element.visual.url
+          const capturedSize = element.size
+          knotPromises.push(
+            loadSpriteTexture(spriteUrl).then(texture => {
+              if (texture === Texture.EMPTY) return
+              const sprite = new Sprite(texture)
+              sprite.label = 'sprite-asset'
+              sprite.anchor.set(0.5, 0.5)
+              sprite.width = capturedSize.width
+              sprite.height = capturedSize.height
+              knotContainer.addChildAt(sprite, 1)
+            })
+          )
+        } else if (element.visual.type === 'generated') {
+          // Render fallback visual immediately
+          const capturedSize = element.size
+          renderFallbackVisual(knotContainer, element.visual.fallback, capturedSize)
+          // Mark container for hot-swap when asset arrives
+          knotContainer.label = `knot-${knotId}:pending`
         }
       }
     }
@@ -572,6 +614,27 @@ export function GlamourRenderer({
       }
     }
   }, [animationState, selection])
+
+  // ─── WebSocket: Hot-swap glamour assets ──────────────────────
+
+  useEffect(() => {
+    const ws = new WebSocket(`ws://${window.location.hostname}:4444/ws`)
+
+    ws.onmessage = (event) => {
+      try {
+        const msg = JSON.parse(event.data)
+        if (msg.type === 'glamour-asset' && msg.knotId && msg.url) {
+          hotSwapKnotAsset(knotSpritesRef.current, msg.knotId, msg.url)
+        }
+      } catch {
+        // Ignore parse errors
+      }
+    }
+
+    return () => {
+      ws.close()
+    }
+  }, [])
 
   // ─── Click on background to clear selection ──────────────────
 
@@ -759,6 +822,79 @@ export function GlamourRenderer({
       </div>
     </div>
   )
+}
+
+// ─── Fallback Visual Rendering ──────────────────────────────────
+
+/**
+ * Render a fallback GlamourVisual into a container.
+ * Used when a 'generated' visual's asset hasn't arrived yet.
+ */
+function renderFallbackVisual(
+  container: Container,
+  fallback: GlamourVisual,
+  size: { width: number; height: number },
+): void {
+  if (fallback.type === 'color') {
+    const fill = parseInt(fallback.fill.replace('#', ''), 16)
+    const bg = new Graphics()
+    bg.label = 'fallback-visual'
+    bg.roundRect(-size.width / 2, -size.height / 2, size.width, size.height, 8)
+    bg.fill({ color: fill, alpha: 0.6 })
+    if (fallback.stroke) {
+      const stroke = parseInt(fallback.stroke.replace('#', ''), 16)
+      bg.roundRect(-size.width / 2, -size.height / 2, size.width, size.height, 8)
+      bg.stroke({ color: stroke, width: 1.5 })
+    }
+    container.addChildAt(bg, 1)
+  } else if (fallback.type === 'svg') {
+    loadSvgTexture(fallback.path).then(texture => {
+      if (texture === Texture.EMPTY) return
+      const sprite = new Sprite(texture)
+      sprite.label = 'fallback-visual'
+      sprite.anchor.set(0.5, 0.5)
+      sprite.width = size.width
+      sprite.height = size.height
+      // Insert at position 1 (behind label, in front of background)
+      if (container.children.length > 1) {
+        container.addChildAt(sprite, 1)
+      } else {
+        container.addChild(sprite)
+      }
+    })
+  }
+}
+
+// ─── Hot-Swap: Replace a pending knot visual with a loaded asset ─
+
+function hotSwapKnotAsset(
+  knotSprites: Map<KnotId, KnotSprite>,
+  knotId: string,
+  url: string,
+): void {
+  const ks = knotSprites.get(knotId)
+  if (!ks) return
+
+  loadSpriteTexture(url).then(texture => {
+    if (texture === Texture.EMPTY) return
+
+    // Remove old fallback/sprite child (label = 'fallback-visual' or 'sprite-asset')
+    for (let i = ks.container.children.length - 1; i >= 0; i--) {
+      const child = ks.container.children[i]
+      if (child.label === 'fallback-visual' || child.label === 'sprite-asset') {
+        ks.container.removeChild(child)
+        child.destroy()
+      }
+    }
+
+    // Insert new sprite
+    const sprite = new Sprite(texture)
+    sprite.label = 'sprite-asset'
+    sprite.anchor.set(0.5, 0.5)
+    sprite.width = ks.element.size.width
+    sprite.height = ks.element.size.height
+    ks.container.addChildAt(sprite, 1)
+  })
 }
 
 // ─── Drawing Helpers ────────────────────────────────────────────

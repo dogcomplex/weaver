@@ -2,7 +2,7 @@
  * AI Route — The Weaver's brain.
  *
  * POST /api/ai/chat — Streaming chat with Claude.
- * Claude gets the 16 graph tools + glamour tools as function calls.
+ * Claude gets the 17 graph tools + glamour tools as function calls.
  * Responses stream as SSE (Server-Sent Events).
  * Tool executions broadcast weave changes via WebSocket.
  */
@@ -449,6 +449,12 @@ async function executeTool(
         }
         const engine = new LLMMetaphorEngine(apiKey, undefined, input.weaveId)
         const manifests = await engine.propose(schema, input.count ?? 3)
+        // Persist each manifest for later activation
+        for (const m of manifests) {
+          await saveManifest(m).catch(err =>
+            log.warn({ err, manifestId: m.id }, 'Failed to save manifest')
+          )
+        }
         return JSON.stringify({
           count: manifests.length,
           manifests: manifests.map(m => ({
@@ -467,6 +473,10 @@ async function executeTool(
         if (!apiKey) return JSON.stringify({ error: 'ANTHROPIC_API_KEY not set' })
         const engine = new LLMMetaphorEngine(apiKey, undefined, input.manifest?.id)
         const refined = await engine.refine(input.manifest, input.feedback)
+        // Persist refined manifest
+        await saveManifest(refined).catch(err =>
+          log.warn({ err, manifestId: refined.id }, 'Failed to save refined manifest')
+        )
         return JSON.stringify({
           name: refined.name,
           score: refined.scores.overall,
@@ -483,6 +493,52 @@ async function executeTool(
           weaveId: weave.id,
           weaveName: weave.name,
           schema,
+        })
+      }
+      case 'weaver_activate_glamour': {
+        // Load manifest
+        let manifest: MetaphorManifest | null = null
+        if (input.manifestId) {
+          manifest = await loadManifest(input.manifestId)
+        } else {
+          manifest = await loadLatestManifest()
+        }
+        if (!manifest) {
+          return JSON.stringify({ error: 'No manifest found. Use weaver_suggest_metaphor first to generate one.' })
+        }
+
+        // Load weave and build knotIdMap
+        const filepath = path.join(GRAPHS_DIR, `${input.weaveId}.weave.json`)
+        const content = await fs.readFile(filepath, 'utf-8')
+        const weave = deserializeWeave(content)
+        const knotIdMap = buildKnotIdMap(weave)
+
+        // Queue asset generation for uncached visuals
+        let pendingAssets = 0
+        try {
+          const assetResults = await generateManifestAssets(manifest, knotIdMap)
+          pendingAssets = assetResults.filter(r => r.pending).length
+        } catch (err: any) {
+          log.warn({ err }, 'Asset generation failed (ComfyUI may not be running)')
+        }
+
+        // Broadcast theme change to frontend
+        broadcast({
+          type: 'glamour-theme-changed',
+          manifestId: manifest.id,
+          manifest,
+        })
+
+        log.info({ manifestId: manifest.id, name: manifest.name, pendingAssets }, 'Glamour activated')
+
+        return JSON.stringify({
+          success: true,
+          themeId: manifest.id,
+          themeName: manifest.name,
+          pendingAssets,
+          message: pendingAssets > 0
+            ? `Glamour "${manifest.name}" activated. ${pendingAssets} asset(s) generating via ComfyUI — they will appear as they complete.`
+            : `Glamour "${manifest.name}" activated with all assets ready.`,
         })
       }
       default:
@@ -751,4 +807,101 @@ router.post('/chat', async (req: Request, res: Response) => {
       await appendChatMessage(sessionId, {
         role: 'assistant',
         content: fullAssistantText,
-        time
+        timestamp: new Date().toISOString(),
+        toolCalls: allToolCalls.length > 0 ? allToolCalls : undefined,
+      }).catch(err => log.warn({ err }, 'Failed to persist assistant message'))
+    }
+
+    sendSSE('done', { status: 'complete', sessionId })
+  } catch (err: any) {
+    log.error({ err }, 'AI chat error')
+    sendSSE('error', { message: err.message ?? 'AI request failed' })
+  } finally {
+    res.end()
+  }
+})
+
+// ─── Health Check ───────────────────────────────────────────────
+
+router.get('/status', (_req, res) => {
+  const hasKey = !!process.env.ANTHROPIC_API_KEY
+  res.json({
+    configured: hasKey,
+    model: 'claude-sonnet-4-20250514',
+    tools: TOOL_DEFINITIONS.length,
+  })
+})
+
+// ─── Session Endpoints ──────────────────────────────────────────
+
+router.get('/sessions', async (_req, res) => {
+  try {
+    const sessions = await listChatSessions()
+    res.json(sessions)
+  } catch (err: any) {
+    res.status(500).json({ error: err.message ?? 'Failed to list sessions' })
+  }
+})
+
+router.get('/sessions/:id', async (req, res) => {
+  try {
+    const session = await loadChatSession(req.params.id)
+    res.json(session)
+  } catch (err: any) {
+    res.status(404).json({ error: err.message ?? 'Session not found' })
+  }
+})
+
+// ─── Glamour Asset Endpoints ────────────────────────────────────
+
+router.get('/glamour/assets', (_req, res) => {
+  const allAssets = serverAssetResolver.getAll()
+  const result: Record<string, { type: string; url: string; hash: string }> = {}
+  for (const [key, asset] of allAssets) {
+    result[key] = { type: asset.type, url: asset.url, hash: asset.hash }
+  }
+  res.json(result)
+})
+
+router.get('/glamour/assets/:hash', async (req, res) => {
+  const hash = req.params.hash
+  const assetPath = path.join(process.cwd(), 'data', 'output', 'glamour-assets', `${hash}.png`)
+  try {
+    await fs.access(assetPath)
+    res.json({ exists: true, url: `/api/output/glamour-assets/${hash}.png` })
+  } catch {
+    res.json({ exists: false })
+  }
+})
+
+// ─── Manifest Endpoints ─────────────────────────────────────────
+
+router.get('/glamour/manifests', async (_req, res) => {
+  try {
+    await fs.mkdir(MANIFESTS_DIR, { recursive: true })
+    const files = await fs.readdir(MANIFESTS_DIR)
+    const manifests = []
+    for (const file of files) {
+      if (!file.endsWith('.json')) continue
+      try {
+        const content = await fs.readFile(path.join(MANIFESTS_DIR, file), 'utf-8')
+        const m = JSON.parse(content) as MetaphorManifest
+        manifests.push({ id: m.id, name: m.name, score: m.scores.overall })
+      } catch { /* skip corrupt files */ }
+    }
+    res.json(manifests)
+  } catch {
+    res.json([])
+  }
+})
+
+router.get('/glamour/manifests/:id', async (req, res) => {
+  try {
+    const manifest = await loadManifest(req.params.id)
+    res.json(manifest)
+  } catch {
+    res.status(404).json({ error: 'Manifest not found' })
+  }
+})
+
+export { router as aiRouter }

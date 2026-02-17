@@ -30,12 +30,13 @@ describe('AI Route — Tool Definitions', () => {
       'weaver_suggest_metaphor',
       'weaver_refine_metaphor',
       'weaver_inspect',
+      'weaver_activate_glamour',
     ]
     // Verify the naming convention
     for (const name of expectedTools) {
       expect(name).toMatch(/^weaver_/)
     }
-    expect(expectedTools).toHaveLength(16)
+    expect(expectedTools).toHaveLength(17)
   })
 
   it('tool names follow snake_case convention', () => {
@@ -45,7 +46,7 @@ describe('AI Route — Tool Definitions', () => {
       'weaver_branch', 'weaver_join', 'weaver_gate', 'weaver_trace',
       'weaver_describe_weave', 'weaver_describe_knot',
       'weaver_suggest_metaphor', 'weaver_refine_metaphor',
-      'weaver_inspect',
+      'weaver_inspect', 'weaver_activate_glamour',
     ]
     for (const name of toolNames) {
       expect(name).toMatch(/^[a-z_]+$/)
@@ -167,12 +168,12 @@ describe('AI Route — Status Endpoint', () => {
     const response = {
       configured: false,
       model: 'claude-sonnet-4-20250514',
-      tools: 16,
+      tools: 17,
     }
     expect(response).toHaveProperty('configured')
     expect(response).toHaveProperty('model')
     expect(response).toHaveProperty('tools')
-    expect(response.tools).toBe(16)
+    expect(response.tools).toBe(17)
   })
 })
 
@@ -231,6 +232,116 @@ describe('AI Route — Session Storage', () => {
     expect(entry.type).toBe('propose')
     expect(entry.model).toContain('haiku')
     expect(entry.input.count).toBe(3)
+  })
+})
+
+describe('AI Route — weaver_activate_glamour', () => {
+  it('weaver_activate_glamour has correct input schema', () => {
+    const tool = {
+      name: 'weaver_activate_glamour',
+      requiredParams: ['weaveId'],
+      optionalParams: ['manifestId'],
+    }
+    expect(tool.name).toBe('weaver_activate_glamour')
+    expect(tool.requiredParams).toContain('weaveId')
+    expect(tool.optionalParams).toContain('manifestId')
+  })
+
+  it('activate response has correct shape', () => {
+    const response = {
+      success: true,
+      themeId: 'kitchen-01',
+      themeName: 'Kitchen',
+      pendingAssets: 3,
+      message: 'Glamour "Kitchen" activated. 3 asset(s) generating via ComfyUI — they will appear as they complete.',
+    }
+    expect(response.success).toBe(true)
+    expect(response.themeId).toBeDefined()
+    expect(response.themeName).toBeDefined()
+    expect(response.pendingAssets).toBe(3)
+    expect(response.message).toContain('Kitchen')
+  })
+
+  it('glamour-theme-changed broadcast has correct shape', () => {
+    const broadcast = {
+      type: 'glamour-theme-changed',
+      manifestId: 'kitchen-01',
+      manifest: {
+        id: 'kitchen-01',
+        name: 'Kitchen',
+        mappings: [],
+        threadStyle: { colorBy: 'dataType', metaphor: '', colorMap: {} },
+        sceneDescription: 'A kitchen viewed from above',
+      },
+    }
+    expect(broadcast.type).toBe('glamour-theme-changed')
+    expect(broadcast.manifest.id).toBe('kitchen-01')
+    expect(broadcast.manifest.name).toBe('Kitchen')
+  })
+})
+
+describe('AI Route — Manifest Storage', () => {
+  it('manifest storage shape is correct', () => {
+    const manifest = {
+      id: 'kitchen-01',
+      name: 'Kitchen',
+      mappings: [
+        {
+          knotType: 'KSampler',
+          metaphorElement: 'Oven',
+          label: 'Oven',
+          description: 'Combines ingredients',
+          facadeControls: [],
+          assetPrompt: 'A warm kitchen oven icon',
+          size: { width: 120, height: 100 },
+        },
+      ],
+      threadStyle: {
+        colorBy: 'dataType',
+        metaphor: 'ingredients flowing',
+        colorMap: { MODEL: { color: '#8B4513', width: 4, style: 'solid' as const } },
+      },
+      waveMetaphor: 'serving tray',
+      sceneDescription: 'A kitchen',
+      sceneConfig: { background: '#2a1a0a', layoutMode: 'horizontal' as const, spacing: { x: 300, y: 200 } },
+      aiVocabulary: 'kitchen terms',
+      scores: { explanatoryPower: 8, truthfulness: 7, completeness: 8, intuitiveInteraction: 9, fractalConsistency: 7, overall: 7.8, rationale: 'Good' },
+    }
+    expect(manifest.id).toBeDefined()
+    expect(manifest.mappings).toHaveLength(1)
+    expect(manifest.mappings[0].assetPrompt).toContain('oven')
+    expect(manifest.scores.overall).toBeGreaterThan(0)
+  })
+
+  it('manifest list response has correct shape', () => {
+    const list = [
+      { id: 'kitchen-01', name: 'Kitchen', score: 7.8 },
+      { id: 'studio-01', name: 'Photography Studio', score: 8.2 },
+    ]
+    expect(list).toHaveLength(2)
+    expect(list[0]).toHaveProperty('id')
+    expect(list[0]).toHaveProperty('name')
+    expect(list[0]).toHaveProperty('score')
+  })
+})
+
+describe('AI Route — Glamour Asset Endpoints', () => {
+  it('asset hydration response has correct shape', () => {
+    const assets: Record<string, { type: string; url: string; hash: string }> = {
+      'KSampler_k1_abc123': { type: 'image', url: '/api/output/glamour-assets/abc123.png', hash: 'abc123' },
+    }
+    const entry = assets['KSampler_k1_abc123']
+    expect(entry.type).toBe('image')
+    expect(entry.url).toContain('abc123')
+    expect(entry.hash).toBe('abc123')
+  })
+
+  it('asset check response has correct shape', () => {
+    const exists = { exists: true, url: '/api/output/glamour-assets/abc123.png' }
+    const missing = { exists: false }
+    expect(exists.exists).toBe(true)
+    expect(exists.url).toContain('abc123')
+    expect(missing.exists).toBe(false)
   })
 })
 
