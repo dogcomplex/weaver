@@ -9,6 +9,7 @@ import { runtimeRouter } from './routes/runtime.js'
 import { schemaRouter } from './routes/schema.js'
 import { adaptersRouter } from './routes/adapters.js'
 import { servicesRouter, setServiceBroadcast } from './routes/services.js'
+import { aiRouter } from './routes/ai.js'
 import { errorHandler } from './middleware/errors.js'
 import { setupFileWatcher } from './watcher.js'
 import { log } from './logger.js'
@@ -45,9 +46,17 @@ app.use('/comfyui', comfyProxy)
 
 app.use(express.json({ limit: '10mb' }))
 
+// Serve glamour theme SVG assets from /glamour/loom/
+const GLAMOUR_LOOM_ASSETS = path.resolve(process.cwd(), 'packages', 'glamour', 'src', 'themes', 'loom', 'assets')
+app.use('/glamour/loom', express.static(GLAMOUR_LOOM_ASSETS))
+
 // Serve generated images from data/output/ (primary) and ComfyUI default output (fallback)
 const COMFYUI_OUTPUT_DIR = path.resolve(process.cwd(), 'services', 'comfyui', 'ComfyUI_windows_portable', 'ComfyUI', 'output')
 app.use('/api/output/files', express.static(OUTPUT_DIR), express.static(COMFYUI_OUTPUT_DIR))
+
+// Serve glamour-generated assets from data/output/glamour-assets/
+const GLAMOUR_ASSET_DIR = path.resolve(process.cwd(), 'data', 'output', 'glamour-assets')
+app.use('/api/output/glamour-assets', express.static(GLAMOUR_ASSET_DIR))
 
 // List output images (merge both directories, deduplicate by filename)
 app.get('/api/output', async (_req, res) => {
@@ -94,6 +103,9 @@ app.use('/api/adapters', adaptersRouter)
 
 // Service management (start/stop ComfyUI, etc.)
 app.use('/api/services', servicesRouter)
+
+// AI chat (Claude integration)
+app.use('/api/ai', aiRouter)
 
 // Error handling
 app.use(errorHandler)

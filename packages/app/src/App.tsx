@@ -1,9 +1,11 @@
 import { useState, useCallback } from 'react'
 import { ClassicRenderer } from './renderers/ClassicRenderer.js'
 import { ComfyUIRenderer } from './renderers/ComfyUIRenderer.js'
+import { GlamourRenderer } from './renderers/GlamourRenderer.js'
 import { Sidebar } from './components/Sidebar.js'
 import { ViewTabs } from './components/ViewTabs.js'
 import { PropertiesPanel } from './components/PropertiesPanel.js'
+import { AIChatPanel, type ChatMessage, type ToolCall } from './components/AIChatPanel.js'
 import { TracePanel } from './components/TracePanel.js'
 import { ImagePanel } from './components/ImagePanel.js'
 import { ErrorBoundary } from './components/ErrorBoundary.js'
@@ -23,6 +25,12 @@ function AppInner() {
   const [traceResult, setTraceResult] = useState<any>(null)
   const [queueResult, setQueueResult] = useState<QueueResult | null>(null)
   const [viewMode, setViewMode] = useState<ViewMode>('unveiled')
+  const [aiPanelOpen, setAiPanelOpen] = useState(false)
+
+  // Lifted chat state — persists across AI panel toggle
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([])
+  const [chatToolCalls, setChatToolCalls] = useState<ToolCall[]>([])
+  const [chatSessionId, setChatSessionId] = useState<string | null>(null)
 
   // Wave animation: auto-plays when trace result changes
   const { animationState } = useWaveAnimation(traceResult)
@@ -58,7 +66,27 @@ function AppInner() {
         />
       </ErrorBoundary>
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', position: 'relative' }}>
-        <ViewTabs activeView={viewMode} onViewChange={setViewMode} />
+        <div style={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}>
+          <ViewTabs activeView={viewMode} onViewChange={setViewMode} />
+          <div style={{ flex: 1 }} />
+          <button
+            onClick={() => setAiPanelOpen(p => !p)}
+            style={{
+              padding: '4px 12px',
+              marginRight: 8,
+              background: aiPanelOpen ? '#1a1a3e' : 'transparent',
+              color: aiPanelOpen ? '#6a6aff' : '#6a6a9a',
+              border: aiPanelOpen ? '1px solid #2a2a4e' : '1px solid transparent',
+              borderRadius: 4,
+              cursor: 'pointer',
+              fontSize: 11,
+              fontWeight: 600,
+              letterSpacing: '0.5px',
+            }}
+          >
+            AI
+          </button>
+        </div>
         <div style={{ flex: 1, position: 'relative' }}>
           <ErrorBoundary>
             {viewMode === 'unveiled' && (
@@ -68,7 +96,7 @@ function AppInner() {
               <ComfyUIRenderer {...rendererProps} />
             )}
             {viewMode === 'glamour' && (
-              <GlamourPlaceholder />
+              <GlamourRenderer {...rendererProps} />
             )}
           </ErrorBoundary>
           {traceResult && (
@@ -90,48 +118,29 @@ function AppInner() {
           )}
         </div>
       </div>
-      <ErrorBoundary>
-        <PropertiesPanel
-          selection={selection}
-          onClose={() => setSelection(null)}
-        />
-      </ErrorBoundary>
-    </div>
-  )
-}
-
-/** Placeholder for the Glamour renderer (Phase 3) */
-function GlamourPlaceholder() {
-  return (
-    <div
-      style={{
-        width: '100%',
-        height: '100%',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        background: '#0a0a0a',
-        flexDirection: 'column',
-        gap: 12,
-      }}
-    >
-      <div
-        style={{
-          fontSize: 24,
-          color: '#2a2a4e',
-          fontWeight: 300,
-          letterSpacing: '2px',
-        }}
-      >
-        ✦ GLAMOUR ✦
-      </div>
-      <div style={{ fontSize: 13, color: '#3a3a5a' }}>
-        PixiJS glamour renderer coming in Phase 3
-      </div>
-      <div style={{ fontSize: 11, color: '#2a2a3e', maxWidth: 400, textAlign: 'center', lineHeight: 1.6 }}>
-        Complexity disguised as elegant minimalism — many controls that feel like
-        just one thing, which the user already "knows"
-      </div>
+      {!aiPanelOpen && (
+        <ErrorBoundary>
+          <PropertiesPanel
+            selection={selection}
+            onClose={() => setSelection(null)}
+          />
+        </ErrorBoundary>
+      )}
+      {aiPanelOpen && (
+        <ErrorBoundary>
+          <AIChatPanel
+            open={aiPanelOpen}
+            onClose={() => setAiPanelOpen(false)}
+            themeId={viewMode === 'glamour' ? 'loom' : undefined}
+            messages={chatMessages}
+            setMessages={setChatMessages}
+            toolCalls={chatToolCalls}
+            setToolCalls={setChatToolCalls}
+            sessionId={chatSessionId}
+            setSessionId={setChatSessionId}
+          />
+        </ErrorBoundary>
+      )}
     </div>
   )
 }

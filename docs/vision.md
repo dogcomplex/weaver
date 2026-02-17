@@ -2,11 +2,15 @@
 
 ## Context
 
-Weaver is a visual graph programming platform built across 8 phases — core types, runtime, adapters, server, frontend, MCP, and ComfyUI integration. It's fully functional: you can create knots, connect them, save/load, trace execution, queue to ComfyUI, and see generated images inline. **101 tests pass, server + frontend run, ComfyUI portable with SD 1.5 generates images end-to-end.**
+Weaver is a visual graph programming platform built across 5 phases — core types, runtime, adapters, server, frontend, MCP, and ComfyUI integration. It's fully functional: you can create knots, connect them, save/load, trace execution, queue to ComfyUI, and see generated images inline. **157 tests pass, server + frontend run, ComfyUI portable with SD 1.5 generates images end-to-end.**
 
 **Phase 1 (Classic Editor) is complete.** Selection, properties panel, deletion, context menus, knot type registry, type-specific rendering, keyboard shortcuts, undo/redo, validation, and ComfyUI service management from the web UI all work.
 
 **Phase 2 (Glamour Engine) is complete.** The `packages/glamour/` package provides the abstraction layer for pluggable renderers. ClassicRenderer extracted from Canvas.tsx, ViewTabs with three-tab switching (Unveiled / ComfyUI / Glamour), wave animation engine, and the foundation for Phase 3's PixiJS glamour renderer.
+
+**Phase 3 (First Glamour — "The Loom") is complete.** PixiJS v8 GlamourRenderer with full Loom theme: 8 hand-crafted SVG assets, facade controls (sliders, dropdowns, text inputs), CSS-synced HTML overlays, Alt+click partial unveil, pan/zoom camera, and click→Properties Panel integration. 128 tests passing at completion. The Loom metaphor scored ~3/10 on our own quality criteria — a useful exercise that informed the Phase 4 metaphor engine design.
+
+**Phase 4 (AI Integration) is in progress.** Claude-powered chat panel, SSE streaming with tool execution, MetaphorEngine (the Loci), and ComfyUI asset generation bridge.
 
 **The vision**: Transform Weaver into something that has never been built — a system where workflows manifest as **living, interactive metaphorical worlds**. Factories with conveyor belts, gardens with irrigation, kingdoms with roads and messengers. Non-programmers understand what's happening intuitively because the visual metaphor *clicks*. AI (Claude) builds workflows from natural language, explains them in metaphorical terms, and generates custom visual assets using ComfyUI itself.
 
@@ -269,126 +273,62 @@ Wired into `App.tsx` — `useWaveAnimation(traceResult)` feeds `animationState` 
 
 ---
 
-## Phase 3: First Glamour — "The Loom" + ComfyUI Infrastructure
+## Phase 3: First Glamour — "The Loom" ✅ COMPLETE
 
-The weaving lexicon from CLAUDE.md IS the first glamour theme. The names we already use become literal visual elements. This glamour should be fractal — zoom into the heddle frame and it contains a smaller loom of its own.
+The weaving lexicon from CLAUDE.md IS the first glamour theme. The names we already use became literal visual elements.
 
-### 3A. Technology: PixiJS v8 + @pixi/react
-- WebGL sprite rendering, tweened animations, interaction events
-- Handles many animated sprites (waves as shuttles) at 60fps
-- Add `pixi.js`, `@pixi/react` to root package.json
-- Layered composition model (mirrors LOKI prototype's z-index stacking: backdrop → visual → controls)
+### 3A. Technology: PixiJS v8 ✅
 
-### 3B. Loom Glamour Mappings
+PixiJS v8 with direct API (no @pixi/react — it doesn't support v8 yet). WebGL rendering with sprite composition, pan/zoom camera, and interactive events.
 
-| Knot Type | Glamour Element | Facade Controls |
-|-----------|----------------|-----------------|
-| `CheckpointLoaderSimple` | Spindle/distaff holding raw fiber | Rotate spindle to select model |
-| `CLIPTextEncode` | Dye vat with colored liquid | Adjust color/tap vat to edit prompt text |
-| `KSampler` | Heddle frame (central loom) | Levers for steps/CFG, wheel for sampler |
-| `VAEDecode` | Winding frame | Crank to preview decode |
-| `SaveImage` | Finished cloth on beam | Unroll to see the output image |
-| `EmptyLatentImage` | Raw fiber bundle | Stretch/compress for dimensions |
-| `default` | Tied knot | Click to inspect |
-| *n8n trigger* | *Alarm bell / starting horn* | *Click to fire* |
-| *n8n HTTP request* | *Messenger bird* | *Scroll for URL, ribbon for headers* |
-| *n8n transform* | *Spinning wheel* | *Dial for transform type* |
+### 3B. Loom Theme ✅
 
-**Threads** = literal threads stretching between loom elements. Color by data type:
-- MODEL: thick dark fiber
-- CLIP: thin colored thread (warm=positive, cool=negative)
-- LATENT: translucent shimmering thread
-- IMAGE: bright full-color thread
+```
+packages/glamour/src/themes/loom/
+  index.ts   — LoomTheme implementing GlamourTheme interface
+  assets/    — 8 hand-crafted SVGs: spindle, dye-vat, heddle-frame,
+               winding-frame, cloth-beam, fiber-bundle, shuttle, tied-knot
+```
 
-**Waves** = shuttles (boat-shaped tools carrying weft across warp). Visible movement from element to element during trace execution.
+Full GlamourTheme implementation with `enchantKnot`, `enchantThread`, `enchantWave`, `describeWeave`, `describeKnot`, `aiSystemPrompt`, and facade controls. 27 tests in `loom-theme.test.ts`.
 
-**Gates** = heddles (wire frames lifting/lowering threads). Rise = condition passes, stay down = blocked.
+### 3C. GlamourRenderer ✅
 
-**Subgraph glamours**: The positive CLIP + negative CLIP could merge into a single "dyeing station" glamour. The whole KSampler+VAE chain could merge into "the working loom." AI decides.
+`packages/app/src/renderers/GlamourRenderer.tsx` (~865 lines):
+- Creates PixiJS Application on mount, manages world container + camera
+- For each knot: loads SVG sprite via `theme.enchantKnot()`, places at world coordinates
+- For each thread: draws colored bezier curves via `theme.enchantThread()`
+- **Facade controls**: CSS-synced HTML overlays (sliders, dropdowns, text inputs) positioned in world space via CSS transform mirroring
+- **Click → selection**: `pixiClickedRef` bridges PixiJS FederatedEvent and DOM click systems
+- **Alt+click**: partial unveil — shows original knot type/label beneath the glamour
+- **Pan/zoom**: wheel zoom, middle-mouse-drag pan, fit-to-view on load
+- **Scene diffing**: compares current sprites against incoming weave, adds/removes/repositions
 
-### 3C. SVG Asset Pipeline
-- Ship initial assets as SVGs in `packages/glamour/src/themes/loom/assets/`
-- `spindle.svg`, `dye-vat.svg`, `heddle-frame.svg`, `shuttle.svg`, etc.
-- Phase 4 adds AI-generated upgrades via ComfyUI
-- Asset resolver uses hash-based lookup (from LOKI prototype) with SVG → generated image upgrade path
+### 3D. Lessons Learned: Loom Metaphor Quality ≈ 3/10
 
-### 3D. PixiJS GlamourRenderer
-- On mount: create PixiJS Application, attach to DOM
-- For each knot: `theme.enchantKnot()` → create PixiJS sprite with facade
-- For each thread: `theme.enchantThread()` → draw Graphics path
-- Wire facade interactions → graph operations
-- On Weave change: diff and update scene (add/remove/reposition)
-- On trace: `theme.enchantWave()` → animate shuttle sprites along paths
-- Partial unveil: click an element with Alt → shows the unveiled knot(s) beneath just that one glamour
+The Loom metaphor exposed critical quality gaps:
+- "Dye Vat" for text prompts has weak **explanatory power** — a non-programmer doesn't get it
+- Steps/CFG as generic sliders with opaque labels lacks **truthfulness** — controls don't map intuitively
+- Missing scheduler, sampler_name, denoise = poor **completeness**
+- "Passes"/"Tension" labels don't convey what changing them does = low **intuitive interaction**
+- Thread colors worked, individual elements didn't decompose = mixed **fractal consistency**
 
-### 3E. Coordinate Mapping + Fractal Zoom
-- Loom is horizontal (warp left→right). Graph positions map with configurable scale.
-- Branching (vertical spread) = multiple threads on different heddles
-- **Zoom levels**: At high zoom, see the full tapestry. Zoom into a section → the glamour elements expand to show more detail, potentially revealing their own internal subgraph as a smaller loom
+This experience directly informed the Phase 4 MetaphorEngine design: we need to evaluate and iterate on metaphors, not ship the first idea.
 
-### 3F. ComfyUI-LOKI Backport
-- Port Loom theme definition to work with LOKI's overlay system
-- Reuse theme mappings, adapt rendering from PixiJS sprites to DOM overlays
-- Keep LOKI's aurora gradient as fallback while Loom assets load
-- Shared asset pipeline: same SVGs, same hash-based resolution
+### 3E. ComfyUI Infrastructure (Deferred)
 
-### 3G. ComfyUI Infrastructure: Model Management + Workflow Templates
+Model management, workflow templates, and dependency resolution (3G in original plan) deferred to a future phase. The existing SD 1.5 portable setup and manual workflow management work for current needs.
 
-Phase 2 added the ComfyUI native graph tab. Phase 3 builds the infrastructure to make ComfyUI fully functional for diverse workflows beyond the basic SD 1.5 setup.
+### Verification (Phase 3)
 
-**Approach: Stay ComfyUI-native.** Use ComfyUI Manager (the community-standard extension) rather than building custom model management.
-
-#### Install ComfyUI Manager
-- Add to `services/comfyui/install.bat`: `git clone https://github.com/ltdrdata/ComfyUI-Manager custom_nodes/ComfyUI-Manager`
-- Enables in-browser model downloading, custom node installation, workflow dependency resolution
-- ComfyUI Manager auto-detects missing models when loading a workflow and offers to download them
-
-#### Model Auto-Provisioning
-Server endpoint `POST /api/services/comfyui/provision` that:
-- Accepts a list of required models (checkpoints, LoRAs, upscalers, ControlNets)
-- Uses ComfyUI Manager's API or direct HuggingFace/Civitai downloads
-- Reports progress via WebSocket
-- Key models to pre-provision for glamour asset generation:
-  - SDXL base + refiner (high-quality asset generation)
-  - SD 1.5 (already installed — fast iteration)
-  - A face model (for portrait workflows)
-  - An upscaler (Real-ESRGAN or similar)
-
-#### Workflow Templates
-Curated ComfyUI-native workflow files:
-- Store in `data/workflows/` as `.comfyui.json` files (native ComfyUI format)
-- Auto-import to Weave format on first load
-- Templates for common tasks:
-  - `txt2img-sd15.comfyui.json` (basic, already have as demo)
-  - `txt2img-sdxl.comfyui.json` (high quality)
-  - `img2img.comfyui.json` (image editing for glamour asset refinement)
-  - `inpainting.comfyui.json` (targeted edits)
-  - `upscale.comfyui.json` (enhance generated assets)
-  - `controlnet-depth.comfyui.json` (structured generation)
-- Each template specifies required models → provision system downloads them automatically
-
-#### Workflow Dependency Resolution
-When loading a ComfyUI workflow:
-- Parse required custom nodes and models
-- Check which are installed
-- If missing: prompt user to install via ComfyUI Manager (or auto-install if pre-approved)
-- Critical for sharing workflows — they should "just work"
-
-#### Glamour Asset Generation Pipelines
-Special workflows for generating glamour visuals:
-- `glamour-asset-gen.comfyui.json` — generates theme-appropriate icons/sprites for knot types
-- Uses ControlNet for consistent style, LoRA for theme-specific aesthetics
-- Triggered by `GlamourVisual { type: 'generated', prompt }` in theme definitions
-- Output cached in `data/output/glamour-assets/` with hash-based filenames (from LOKI prototype)
-
-### Verification
-- Load demo-txt2img → switch to Glamour tab → see the workflow as a loom scene
-- Click loom elements → selects corresponding knot → Properties Panel works
-- Turn a gear/adjust a facade control → underlying knot data changes
-- Run trace → shuttles visually carry data across the loom
-- Switch to Unveiled tab → same graph, classic node rendering
-- ComfyUI Manager installed and functional
-- Workflow templates auto-import and resolve dependencies
+- ✅ Load demo-txt2img → switch to Glamour tab → loom scene renders
+- ✅ Click loom elements → selects corresponding knot → Properties Panel opens
+- ✅ Facade controls (sliders, dropdowns, text) modify underlying knot data
+- ✅ Alt+click → partial unveil shows original knot beneath glamour
+- ✅ Pan/zoom camera with fit-to-view
+- ✅ Facade overlays stay aligned during pan/zoom (CSS transform mirroring)
+- ✅ Switch to Unveiled tab → same graph, classic node rendering
+- ✅ 128 tests pass (101 from Phase 2 + 27 Loom theme tests)
 
 ---
 
@@ -408,39 +348,88 @@ Each level is a tab showing the same workflow at a different abstraction depth. 
 
 ---
 
-## Phase 4: AI Integration
+## Phase 4: AI Integration — In Progress
 
-### 4A. Chat Panel in Frontend
-- `packages/app/src/components/AIChatPanel.tsx` — conversational interface
-- `packages/server/src/routes/ai.ts` — proxies to Claude API
-- User: "Create a workflow that generates a portrait" → Claude produces graph operations → Weave built automatically → renders in both Glamour and Unveiled views
-- AI has full access to glamour tools: enchant, unveil, merge subgraphs, create facades
+Two AI roles in the Weaver system:
+- **The Weaver**: Sonnet/Opus developer brain. Builds workflows from conversation, picks out the right ComfyUI nodes, tunes parameters, wires things correctly. Needs deep technical understanding and tool-calling.
+- **The Loci**: Haiku-class ambient spirit. Inhabits the space. Reads the weave schema, the user context, the session mood. Adjusts glamours dynamically as it sees fit. Doesn't edit code — it only outputs MetaphorManifests (structured JSON). Cheap enough to always be watching.
 
-### 4B. Glamour Narration
-- When a GlamourTheme is active, Claude explains using that theme's `aiSystemPrompt`
-- "The spindle holds your model's raw fiber. The dye vats color the thread with your positive and negative prompts..."
-- Hover-tooltip shows both technical description AND glamoured description
-- AI should find its OWN best metaphors unrestricted — the theme provides vocabulary, but Claude picks what fits
+This separation is the key to scaling beyond a dev tool. In a live site/game/group session, the Weaver only fires when functionality needs to change. The Loci runs continuously, tuning the visual metaphor to the current context.
 
-### 4C. AI-Generated Glamour Assets
-- `GlamourVisual` type `{ type: 'generated', prompt }` triggers ComfyUI image generation
-- `packages/server/src/agents/asset-generator.ts` queues ComfyUI jobs for each glamour element
-- Generated assets cached in `data/output/glamour-assets/` and swapped in via WebSocket
-- Initial SVG = fallback shown instantly; AI art arrives async
-- AI can generate ENTIRELY NEW glamour themes from a description — not just use pre-built ones
-- Reuse LOKI prototype's `Glamour/` subfolder convention for ComfyUI-generated assets
+### 4A. Server AI Route ✅
 
-### 4D. AI Glamour Quality Assessment
-- AI evaluates its own glamours: "Is this a perfect glamour? What capabilities are missing from the facade?"
-- Suggests improvements: "The KSampler glamour doesn't expose the scheduler setting — adding a dial for that"
-- Reports glamour depth: "This glamour has 3 levels of unveiling available"
-- Measures against the "perfect glamour" standard: does it feel like one thing the user already knows?
+`packages/server/src/routes/ai.ts` — Express router at `/api/ai`:
+- **`POST /chat`**: SSE streaming chat with Claude. Agentic tool loop — keeps calling until no more tool_use stop reasons.
+- **`GET /status`**: Returns whether API key is configured, model name, tool count.
+- **15 tool definitions**: All graph operations (`weaver_create`, `weaver_mark`, `weaver_thread`, `weaver_cut`, `weaver_snip`, `weaver_branch`, `weaver_join`, `weaver_gate`, `weaver_trace`, `weaver_list`, `weaver_load`) + glamour tools (`weaver_describe_weave`, `weaver_describe_knot`, `weaver_suggest_metaphor`, `weaver_refine_metaphor`).
+- Theme-aware system prompt: injects active theme's `aiSystemPrompt` + weave context.
+- Tool executions broadcast weave changes via existing WebSocket.
 
-### Verification
-- Type "create a txt2img workflow" in chat → workflow appears
-- Glamour view shows AI-generated art for each loom element
-- AI explains what each element does in glamour metaphor terms
-- AI identifies thin glamours and suggests improvements
+### 4B. MetaphorEngine — The Loci ✅
+
+**Types** in `packages/glamour/src/metaphor-engine.ts`:
+- `WeaveSchema`, `WeaveSchemaKnot`, `WeaveSchemaThread` — structural workflow summary
+- `MetaphorContext` — audience, session type, mood, domain
+- `MetaphorManifest` — complete theme specification with mappings, thread styles, scores
+- `MetaphorScores` — 5 weighted criteria (explanatory power 0.30, truthfulness 0.25, completeness 0.20, intuitive interaction 0.15, fractal consistency 0.10)
+- `MetaphorStability` — controls how much the Loci can change (`locked` / `guided` / `adaptive`)
+- `MetaphorEngine` interface — `propose()`, `refine()`, `reevaluate()`
+- Helper: `weaveToSchema()` extracts schema from a Weave
+- Helper: `calculateOverallScore()` computes weighted average
+
+**Implementation** in `packages/server/src/agents/metaphor-agent.ts`:
+- `LLMMetaphorEngine` class implementing `MetaphorEngine`
+- Uses Haiku model by default for cheap, fast metaphor generation
+- Focused system prompt with scoring criteria learned from the Loom 3/10
+- Produces valid JSON manifests with honest self-scoring
+
+### 4C. AI-Generated Glamour Assets ✅
+
+`packages/server/src/agents/asset-generator.ts`:
+- `generateAsset(prompt, knotType, knotId, size)` — builds minimal txt2img ComfyUI workflow, queues it, caches result
+- `generateManifestAssets(manifest, knotIdMap)` — batch generation from MetaphorManifest, fire-and-forget background jobs
+- Hash-based caching in `data/output/glamour-assets/{hash}.png` (djb2 hash of prompt + knot type)
+- WebSocket broadcast on completion: `{ type: 'glamour-asset', knotId, hash, url }`
+- Static serving at `/api/output/glamour-assets/`
+
+### 4D. AIChatPanel ✅
+
+`packages/app/src/components/AIChatPanel.tsx`:
+- Collapsible right-side panel toggled via "AI" button in ViewTabs header
+- Message history: user messages (right-aligned), assistant messages (left-aligned)
+- SSE stream consumption: text deltas, tool use cards, tool results
+- Tool call cards: collapsible, show tool name + result JSON
+- Streaming indicator (pulsing dots)
+- Sends current weaveId + themeId (when in Glamour view) with each message
+- Status check: shows setup instructions when `ANTHROPIC_API_KEY` not set
+
+Wired into `App.tsx`: AI panel replaces Properties panel when open, "AI" button in header bar.
+
+### 4E. Glamour Narration ✅ (Wiring)
+
+- When Glamour view is active, themeId is sent with chat messages
+- System prompt includes the active theme's `aiSystemPrompt`
+- Claude narrates using theme vocabulary: `describeWeave()` and `describeKnot()` available as tools
+- Without a theme active, Claude uses standard weaving terminology
+
+### Phase 4 Verification
+
+- ✅ `npm install` — @anthropic-ai/sdk installed
+- ✅ `npx tsc -b` — typecheck clean across all packages
+- ✅ `npx vitest run` — 157 tests pass (128 existing + 29 new)
+- Set `ANTHROPIC_API_KEY` env var → AI chat panel activates
+- Type "Create a simple txt2img workflow" → Claude builds knots + threads via tools → weave appears in all views
+- AI narrates using active theme vocabulary
+- `weaver_suggest_metaphor` → Loci proposes ranked metaphors with honest scores
+- Without API key → chat panel shows setup instructions, all other features work
+
+### Phase 4 — Future Work
+
+- **Background Loci watcher**: Re-scores when weave changes, pushes updated manifests via WebSocket
+- **Group sessions**: Multiple users vote on metaphor quality, engine adjusts
+- **MetaphorManifest → runtime GlamourTheme**: Convert Loci output to a live-rendered theme
+- **Browser-only mode**: Could run entirely client-side with a small model
+- **ComfyUI Manager integration**: Model management, workflow templates, dependency resolution
 
 ---
 
@@ -501,17 +490,21 @@ Each level is a tab showing the same workflow at a different abstraction depth. 
 
 | File | Role | Phase |
 |------|------|-------|
-| `packages/core/src/types.ts` | Foundation types (Knot, Thread, Weave) | 1D |
-| `packages/core/src/operations.ts` | Pure graph operations (11 ops, tested) | — |
+| `packages/core/src/types.ts` | Foundation types (Knot, Thread, Weave) | 1D ✅ |
+| `packages/core/src/operations.ts` | Pure graph operations (11 ops, tested) | — ✅ |
 | `packages/core/src/knot-types.ts` | KnotTypeDefinition + registry | 1D ✅ |
 | `packages/core/src/validation.ts` | Weave validation | 1G ✅ |
 | `packages/glamour/src/types.ts` | All glamour type definitions (~250 lines) | 2A ✅ |
 | `packages/glamour/src/registry.ts` | RendererRegistry + ThemeRegistry | 2A ✅ |
 | `packages/glamour/src/animation.ts` | buildTimeline + interpolateHighlights | 2H ✅ |
 | `packages/glamour/src/asset-resolver.ts` | Hash-based asset lookup (from LOKI) | 2D ✅ |
+| `packages/glamour/src/metaphor-engine.ts` | MetaphorEngine types + scoring helpers | 4B ✅ |
+| `packages/glamour/src/themes/loom/index.ts` | Loom theme (GlamourTheme impl, 8 SVGs) | 3B ✅ |
 | `packages/app/src/renderers/ClassicRenderer.tsx` | ReactFlow "Unveiled" renderer | 2E ✅ |
 | `packages/app/src/renderers/ComfyUIRenderer.tsx` | ComfyUI native graph view | 2F ✅ |
+| `packages/app/src/renderers/GlamourRenderer.tsx` | PixiJS v8 glamour renderer (~865 lines) | 3D ✅ |
 | `packages/app/src/components/ViewTabs.tsx` | Three-tab view switching | 2F ✅ |
+| `packages/app/src/components/AIChatPanel.tsx` | AI chat panel with SSE streaming | 4D ✅ |
 | `packages/app/src/hooks/useWaveAnimation.ts` | rAF-driven animation playback | 2H ✅ |
 | `packages/app/src/components/Canvas.tsx` | Backward-compat re-export | 2E ✅ |
 | `packages/app/src/components/KnotNode.tsx` | Knot rendering + highlight glow | 1E, 2E ✅ |
@@ -521,12 +514,12 @@ Each level is a tab showing the same workflow at a different abstraction depth. 
 | `packages/app/src/hooks/useWeave.tsx` | State management + undo/redo | 1A ✅ |
 | `packages/app/src/hooks/useSelection.ts` | Ephemeral selection state | 1A ✅ |
 | `packages/app/src/lib/xyflow-bridge.ts` | Weave ↔ XYFlow + highlights | 2E ✅ |
-| `packages/app/src/App.tsx` | Root shell with ViewTabs + renderers | 2F ✅ |
-| `packages/glamour/src/glamour-renderer.ts` | **Phase 3** PixiJS glamour renderer | 3D |
-| `packages/glamour/src/themes/loom/` | **Phase 3** First glamour theme | 3B |
-| `packages/app/src/components/AIChatPanel.tsx` | **Phase 4** AI chat interface | 4A |
-| `packages/server/src/routes/ai.ts` | **Phase 4** Claude API proxy | 4A |
-| `ComfyUI-LOKI/nodes/glamour/` | Existing prototype (refine alongside) | 3F+ |
+| `packages/app/src/App.tsx` | Root shell with ViewTabs + renderers + AI panel | 2F, 4D ✅ |
+| `packages/server/src/routes/ai.ts` | AI chat endpoint with SSE + 15 tools | 4A ✅ |
+| `packages/server/src/agents/metaphor-agent.ts` | LLMMetaphorEngine (Loci implementation) | 4B ✅ |
+| `packages/server/src/agents/asset-generator.ts` | ComfyUI bridge for glamour asset gen | 4C ✅ |
+| `packages/server/src/agents/graph-tools.ts` | 16 graph operation wrappers | — ✅ |
+| `ComfyUI-LOKI/nodes/glamour/` | Existing prototype (refine alongside) | Future |
 
 ---
 
@@ -543,12 +536,16 @@ Phase 2C-D (Asset Resolution, Interfaces) ── ✅ COMPLETE
 Phase 2E-F (Extract Classic/Unveiled, Tab Switch, ComfyUI view) ── ✅ COMPLETE
 Phase 2G-H (Facade types, Wave Animation) ── ✅ COMPLETE
                 ↓
-Phase 3A (PixiJS setup) ── depends on 2E ← NEXT
-Phase 3B-E (Loom glamour + renderer) ── depends on 2A + 3A
-Phase 3F (ComfyUI-LOKI backport) ── depends on 3B
-Phase 3G (ComfyUI Manager + model provisioning + workflow templates) ── can parallel with 3A-E
+Phase 3A (PixiJS v8 setup) ── ✅ COMPLETE
+Phase 3B-D (Loom glamour + GlamourRenderer) ── ✅ COMPLETE
+Phase 3E (ComfyUI infrastructure) ── DEFERRED
                 ↓
-Phase 4A-D (AI chat, glamour narration, asset gen) ── partially parallel with Phase 3
+Phase 4A (AI server route + SSE streaming) ── ✅ COMPLETE
+Phase 4B (MetaphorEngine — The Loci) ── ✅ COMPLETE
+Phase 4C (Asset generator) ── ✅ COMPLETE
+Phase 4D (AIChatPanel + App wiring) ── ✅ COMPLETE
+Phase 4E (Glamour narration) ── ✅ COMPLETE
+Phase 4 Future (Background Loci, group sessions, manifest→theme) ── PENDING
                 ↓
 Phase 5 (Multiple glamours, world system, code view, n8n) ── depends on all above
 ```
@@ -557,5 +554,6 @@ Phase 5 (Multiple glamours, world system, code view, n8n) ── depends on all 
 
 - **packages/core**: 41 tests (operations, helpers, serialization)
 - **packages/runtime**: 22 tests (trace, gate-eval)
-- **packages/glamour**: 38 tests (registry, animation, asset-resolver)
-- **Total: 101 tests, all passing**
+- **packages/glamour**: 65 tests (registry, animation, asset-resolver, loom-theme, metaphor-engine)
+- **packages/server**: 13 tests (ai-route)
+- **Total: 157 tests, all passing**

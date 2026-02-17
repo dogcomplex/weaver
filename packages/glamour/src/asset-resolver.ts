@@ -98,6 +98,11 @@ export class GlamourAssetResolver {
     }
   }
 
+  /** Get all registered assets (for hydration on page load) */
+  getAll(): Map<string, GlamourAsset> {
+    return new Map(this.cache)
+  }
+
   /** Clear entire cache */
   clear(): void {
     this.cache.clear()

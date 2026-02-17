@@ -1,9 +1,33 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import path from 'path'
+import fs from 'fs'
+
+/** Vite plugin to serve glamour theme SVG assets from /glamour/loom/ */
+function glamourAssetsPlugin() {
+  const assetsDir = path.resolve(__dirname, '../glamour/src/themes/loom/assets')
+  return {
+    name: 'glamour-assets',
+    configureServer(server: any) {
+      server.middlewares.use((req: any, res: any, next: any) => {
+        if (!req.url?.startsWith('/glamour/loom/')) return next()
+        const filename = req.url.replace('/glamour/loom/', '')
+        const filePath = path.join(assetsDir, filename)
+        if (fs.existsSync(filePath) && filename.endsWith('.svg')) {
+          res.setHeader('Content-Type', 'image/svg+xml')
+          res.setHeader('Cache-Control', 'public, max-age=3600')
+          fs.createReadStream(filePath).pipe(res)
+        } else {
+          res.statusCode = 404
+          res.end('Not found')
+        }
+      })
+    },
+  }
+}
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), glamourAssetsPlugin()],
   resolve: {
     alias: {
       '#weaver/core': path.resolve(__dirname, '../core/src'),

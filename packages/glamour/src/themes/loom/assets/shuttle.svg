@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 60 24" width="60" height="24">
+  <!-- Shuttle — Wave animation sprite -->
+  <!-- Boat-shaped weaving shuttle carrying weft thread -->
+  <defs>
+    <linearGradient id="shuttleBody" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#3a3a5a"/>
+      <stop offset="50%" stop-color="#4a4a6a"/>
+      <stop offset="100%" stop-color="#3a3a5a"/>
+    </linearGradient>
+  </defs>
+  <!-- Shuttle body (elongated boat shape) -->
+  <path d="M5 12 Q0 12 3 8 L15 4 L45 4 L57 8 Q60 12 57 16 L45 20 L15 20 L3 16 Q0 12 5 12"
+        fill="url(#shuttleBody)" stroke="#6a6a9a" stroke-width="1.2"/>
+  <!-- Bobbin opening -->
+  <ellipse cx="30" cy="12" rx="8" ry="5" fill="#1a1a2e" stroke="#5a5a7a" stroke-width="0.8"/>
+  <!-- Thread on bobbin -->
+  <ellipse cx="30" cy="12" rx="5" ry="3" fill="#4af" opacity="0.6"/>
+  <!-- Pointed ends highlights -->
+  <path d="M5 12 L15 8" fill="none" stroke="#7a7a9a" stroke-width="0.5" opacity="0.5"/>
+  <path d="M55 12 L45 8" fill="none" stroke="#7a7a9a" stroke-width="0.5" opacity="0.5"/>
+</svg>

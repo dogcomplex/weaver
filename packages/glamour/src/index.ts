@@ -49,3 +49,28 @@ export { buildTimeline, interpolateHighlights } from './animation.js'
 
 // Asset resolution
 export { hashKnotConfig, GlamourAssetResolver } from './asset-resolver.js'
+
+// Themes
+export { LoomTheme } from './themes/loom/index.js'
+export { ManifestTheme, buildKnotIdMap } from './themes/manifest/index.js'
+
+// Metaphor Engine (The Loci)
+export type {
+  WeaveSchema,
+  WeaveSchemaKnot,
+  WeaveSchemaThread,
+  MetaphorContext,
+  MetaphorManifest,
+  MetaphorMapping,
+  MetaphorFacadeControl,
+  MetaphorThreadStyle,
+  MetaphorScores,
+  MetaphorStability,
+  MetaphorEngine,
+  // Granular scoring
+  MetaphorAttributeScore,
+  MetaphorMappingScore,
+  InputOutputAnalysis,
+  MetaphorDetailedScores,
+} from './metaphor-engine.js'
+export { weaveToSchema, calculateOverallScore, calculateOverallScoreFromMappings } from './metaphor-engine.js'

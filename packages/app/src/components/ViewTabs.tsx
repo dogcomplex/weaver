@@ -22,7 +22,7 @@ interface TabDef {
 const tabs: TabDef[] = [
   { id: 'unveiled', label: 'Unveiled', enabled: true },
   { id: 'comfyui', label: 'ComfyUI', enabled: true },
-  { id: 'glamour', label: 'Glamour', enabled: false, badge: 'Phase 3' },
+  { id: 'glamour', label: 'Glamour', enabled: true },
 ]
 
 export function ViewTabs({ activeView, onViewChange }: ViewTabsProps) {

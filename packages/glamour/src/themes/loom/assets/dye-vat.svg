@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100">
+  <!-- Dye Vat — CLIPTextEncode -->
+  <!-- A round vat with colored liquid -->
+  <defs>
+    <linearGradient id="dye" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#9a6a9a" stop-opacity="0.7"/>
+      <stop offset="60%" stop-color="#7a4a7a" stop-opacity="0.9"/>
+      <stop offset="100%" stop-color="#5a2a5a" stop-opacity="0.8"/>
+    </linearGradient>
+    <radialGradient id="surface" cx="50%" cy="30%" r="60%">
+      <stop offset="0%" stop-color="#ba8aba" stop-opacity="0.3"/>
+      <stop offset="100%" stop-color="#7a4a7a" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <!-- Vat body -->
+  <path d="M20 30 Q15 30 15 40 L18 80 Q18 88 30 90 L70 90 Q82 88 82 80 L85 40 Q85 30 80 30 Z"
+        fill="#2a2a3e" stroke="#4a4a6a" stroke-width="1.5"/>
+  <!-- Dye liquid -->
+  <path d="M22 38 L25 78 Q25 84 35 85 L65 85 Q75 84 75 78 L78 38 Z"
+        fill="url(#dye)"/>
+  <!-- Surface sheen -->
+  <ellipse cx="50" cy="38" rx="28" ry="6" fill="url(#surface)"/>
+  <!-- Rim -->
+  <ellipse cx="50" cy="30" rx="30" ry="7" fill="none" stroke="#5a5a7a" stroke-width="2"/>
+  <!-- Steam wisps -->
+  <path d="M35 25 Q33 18 36 12" fill="none" stroke="#7a4a7a" stroke-width="1" opacity="0.4"/>
+  <path d="M55 22 Q53 14 57 8" fill="none" stroke="#7a4a7a" stroke-width="1" opacity="0.3"/>
+  <path d="M65 25 Q63 18 66 13" fill="none" stroke="#7a4a7a" stroke-width="1" opacity="0.35"/>
+</svg>

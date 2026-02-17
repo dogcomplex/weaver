@@ -1,0 +1,344 @@
+/**
+ * ManifestTheme — Data-Driven Glamour from MetaphorManifest
+ *
+ * Converts a MetaphorManifest (produced by the Loci) into a live
+ * GlamourTheme that the renderer can consume. This is the bridge
+ * between AI-generated metaphors and visual rendering.
+ *
+ * Visual fallback chain per knot:
+ *   1. assetResolver cached image → { type: 'sprite', url }
+ *   2. mapping.assetPrompt → { type: 'generated', prompt, fallback }
+ *   3. mapping.svgFallback → { type: 'svg', path }
+ *   4. default → { type: 'color', fill, stroke, shape: 'rect' }
+ */
+
+import type { Knot, Thread, KnotId, Weave } from '#weaver/core'
+import type { Wave } from '#weaver/runtime'
+import type {
+  GlamourTheme,
+  GlamourElement,
+  GlamourConnection,
+  GlamourAnimation,
+  GlamourSceneConfig,
+  GlamourVisual,
+  GlamourConnectionVisual,
+  EnchantContext,
+  FacadeDefinition,
+  FacadeControl,
+} from '../../types.js'
+import type {
+  MetaphorManifest,
+  MetaphorMapping,
+  MetaphorFacadeControl,
+} from '../../metaphor-engine.js'
+import { GlamourAssetResolver, hashKnotConfig } from '../../asset-resolver.js'
+
+// ─── Default Colors ──────────────────────────────────────────────
+
+const DEFAULT_FILL = '#1a1a3e'
+const DEFAULT_STROKE = '#3a3a6e'
+const DEFAULT_THREAD_COLOR = '#4a4a6a'
+const DEFAULT_THREAD_WIDTH = 2
+
+// ─── ManifestTheme ──────────────────────────────────────────────
+
+export class ManifestTheme implements GlamourTheme {
+  readonly id: string
+  readonly name: string
+  readonly description: string
+  readonly sceneConfig: GlamourSceneConfig
+  readonly aiSystemPrompt: string
+
+  /** Quick lookup: knotType → MetaphorMapping */
+  private mappingsByType: Map<string, MetaphorMapping>
+
+  constructor(
+    private manifest: MetaphorManifest,
+    /** knotType → knotId — used to inject proper knotId into facade bindings */
+    private knotIdMap: Map<string, KnotId>,
+    private assetResolver?: GlamourAssetResolver,
+  ) {
+    this.id = `manifest-${manifest.id}`
+    this.name = manifest.name
+    this.description = manifest.sceneDescription
+    this.aiSystemPrompt = manifest.aiVocabulary
+
+    // Normalize layoutMode: manifest uses 'freeform', GlamourSceneConfig uses 'free'
+    const layoutMode = manifest.sceneConfig.layoutMode === 'freeform'
+      ? 'free' as const
+      : manifest.sceneConfig.layoutMode as 'horizontal' | 'vertical' | 'radial' | 'free'
+
+    this.sceneConfig = {
+      background: manifest.sceneConfig.background,
+      layoutMode,
+      spacing: manifest.sceneConfig.spacing,
+    }
+
+    // Build lookup map
+    this.mappingsByType = new Map()
+    for (const mapping of manifest.mappings) {
+      this.mappingsByType.set(mapping.knotType, mapping)
+    }
+  }
+
+  // ─── enchantKnot ───────────────────────────────────────────────
+
+  enchantKnot(knot: Knot, context: EnchantContext): GlamourElement {
+    const mapping = this.mappingsByType.get(knot.type)
+
+    // If unveiled, show raw info
+    if (context.unveiledKnots.has(knot.id)) {
+      return {
+        veils: [knot.id],
+        visual: { type: 'color', fill: '#1a1a2e', stroke: '#3a3a5a', shape: 'rect' },
+        facade: null,
+        label: `${knot.label} [${knot.type}]`,
+        tooltip: mapping?.description ?? knot.type,
+        position: knot.position,
+        size: { width: (mapping?.size.width ?? 80), height: 40 },
+        depth: 1,
+      }
+    }
+
+    // No mapping for this knot type — use default
+    if (!mapping) {
+      return {
+        veils: [knot.id],
+        visual: { type: 'color', fill: DEFAULT_FILL, stroke: DEFAULT_STROKE, shape: 'rect' },
+        facade: null,
+        label: knot.label || knot.type,
+        tooltip: `Unknown element: ${knot.type}`,
+        position: knot.position,
+        size: { width: 80, height: 80 },
+        depth: 2,
+      }
+    }
+
+    const visual = this.resolveVisual(knot, mapping)
+    const facade = this.buildFacade(knot.id, mapping)
+
+    return {
+      veils: [knot.id],
+      visual,
+      facade,
+      label: mapping.label,
+      tooltip: mapping.description,
+      position: knot.position,
+      size: mapping.size,
+      depth: 2,
+    }
+  }
+
+  // ─── enchantThread ─────────────────────────────────────────────
+
+  enchantThread(
+    thread: Thread,
+    sourceKnot: Knot,
+    _targetKnot: Knot,
+    _context: EnchantContext,
+  ): GlamourConnection {
+    const visual = this.resolveThreadVisual(thread, sourceKnot)
+
+    return {
+      threadId: thread.id,
+      visual,
+      label: thread.label,
+    }
+  }
+
+  // ─── enchantWave ──────────────────────────────────────────────
+
+  enchantWave(_wave: Wave, _knot: Knot, _context: EnchantContext): GlamourAnimation {
+    // Simple shuttle-style animation matching the manifest's wave metaphor
+    return {
+      duration: 300,
+      keyframes: [
+        { time: 0, properties: { x: -30, opacity: 0 }, easing: 'easeIn' },
+        { time: 0.3, properties: { x: 0, opacity: 1 }, easing: 'easeOut' },
+        { time: 0.7, properties: { x: 0, opacity: 1 }, easing: 'easeIn' },
+        { time: 1, properties: { x: 30, opacity: 0 }, easing: 'easeOut' },
+      ],
+      loop: false,
+    }
+  }
+
+  // ─── canMerge / enchantSubgraph ─────────────────────────────────
+
+  canMerge(_knotIds: KnotId[], _context: EnchantContext): boolean {
+    return false
+  }
+
+  enchantSubgraph(_knotIds: KnotId[], _context: EnchantContext): GlamourElement {
+    throw new Error('Subgraph glamours not implemented in ManifestTheme — use canMerge() to check first')
+  }
+
+  // ─── describeWeave / describeKnot ──────────────────────────────
+
+  describeWeave(weave: Weave): string {
+    const knotCount = weave.knots.size
+    const threadCount = weave.threads.size
+    if (knotCount === 0) {
+      return `${this.manifest.sceneDescription} — empty, waiting to be filled.`
+    }
+    return `${this.manifest.sceneDescription} — ${knotCount} element${knotCount !== 1 ? 's' : ''} connected by ${threadCount} thread${threadCount !== 1 ? 's' : ''}.`
+  }
+
+  describeKnot(knot: Knot, _weave: Weave): string {
+    const mapping = this.mappingsByType.get(knot.type)
+    if (mapping) {
+      return mapping.description
+    }
+    return `${knot.label} — a ${knot.type} element.`
+  }
+
+  // ─── Visual Resolution ─────────────────────────────────────────
+
+  /**
+   * Resolve the visual for a knot, using the fallback chain:
+   * 1. Asset resolver cached image → sprite
+   * 2. Asset prompt → generated (with color fallback)
+   * 3. SVG fallback → svg
+   * 4. Default color
+   */
+  private resolveVisual(knot: Knot, mapping: MetaphorMapping): GlamourVisual {
+    const hash = hashKnotConfig(knot)
+
+    // Level 1: Check asset resolver for cached image
+    if (this.assetResolver) {
+      const resolution = this.assetResolver.resolve(
+        knot.id,
+        knot.type,
+        hash,
+        this.manifest.id,
+      )
+      if (resolution.fallbackLevel === 'exact' || resolution.fallbackLevel === 'type') {
+        return { type: 'sprite', url: resolution.asset.url }
+      }
+    }
+
+    // Level 2: Asset prompt → generated visual with color fallback
+    if (mapping.assetPrompt) {
+      const colorFallback: GlamourVisual = {
+        type: 'color',
+        fill: DEFAULT_FILL,
+        stroke: DEFAULT_STROKE,
+        shape: 'rect',
+      }
+      return {
+        type: 'generated',
+        prompt: mapping.assetPrompt,
+        fallback: mapping.svgFallback
+          ? { type: 'svg', path: mapping.svgFallback }
+          : colorFallback,
+      }
+    }
+
+    // Level 3: SVG fallback
+    if (mapping.svgFallback) {
+      return { type: 'svg', path: mapping.svgFallback }
+    }
+
+    // Level 4: Default color
+    return {
+      type: 'color',
+      fill: DEFAULT_FILL,
+      stroke: DEFAULT_STROKE,
+      shape: 'rect',
+    }
+  }
+
+  // ─── Thread Visual Resolution ──────────────────────────────────
+
+  private resolveThreadVisual(thread: Thread, sourceKnot: Knot): GlamourConnectionVisual {
+    const { threadStyle } = this.manifest
+
+    // Determine the data type for color lookup
+    let dataType = '*'
+    if (threadStyle.colorBy === 'dataType') {
+      // Check explicit thread data type
+      if (thread.data?.type && typeof thread.data.type === 'string') {
+        dataType = thread.data.type
+      } else {
+        // Infer from source knot
+        dataType = this.inferDataType(sourceKnot)
+      }
+    } else if (threadStyle.colorBy === 'source') {
+      dataType = sourceKnot.type
+    }
+
+    // Lookup in color map
+    const style = threadStyle.colorMap[dataType] ?? threadStyle.colorMap['*']
+    if (style) {
+      return {
+        color: style.color,
+        width: style.width,
+        style: style.style,
+      }
+    }
+
+    // Fallback
+    return {
+      color: DEFAULT_THREAD_COLOR,
+      width: DEFAULT_THREAD_WIDTH,
+      style: 'solid',
+    }
+  }
+
+  /** Infer data type from source knot type (same logic as LoomTheme) */
+  private inferDataType(sourceKnot: Knot): string {
+    switch (sourceKnot.type) {
+      case 'CheckpointLoaderSimple': return 'MODEL'
+      case 'CLIPTextEncode': return 'CONDITIONING'
+      case 'KSampler': return 'LATENT'
+      case 'VAEDecode': return 'IMAGE'
+      case 'EmptyLatentImage': return 'LATENT'
+      default: return '*'
+    }
+  }
+
+  // ─── Facade Building ────────────────────────────────────────────
+
+  /**
+   * Convert MetaphorFacadeControl[] → FacadeDefinition, injecting
+   * the actual knotId into each control's binding.
+   */
+  private buildFacade(knotId: KnotId, mapping: MetaphorMapping): FacadeDefinition | null {
+    if (!mapping.facadeControls || mapping.facadeControls.length === 0) {
+      return null
+    }
+
+    const controls: FacadeControl[] = mapping.facadeControls.map((mc: MetaphorFacadeControl) => ({
+      id: mc.id,
+      controlType: mc.controlType,
+      label: mc.label,
+      position: mc.position,
+      binding: {
+        knotId,
+        dataPath: mc.binding.dataPath,
+        min: mc.binding.min,
+        max: mc.binding.max,
+        step: mc.binding.step,
+        options: mc.binding.options,
+      },
+    }))
+
+    return { controls }
+  }
+}
+
+// ─── Utility: Build knotType → knotId map from a Weave ───────────
+
+/**
+ * Builds a Map<knotType, KnotId> from a Weave.
+ * Uses the first knot found for each type.
+ * Exported for use by the server when constructing ManifestTheme.
+ */
+export function buildKnotIdMap(weave: Weave): Map<string, KnotId> {
+  const map = new Map<string, KnotId>()
+  for (const [knotId, knot] of weave.knots) {
+    if (!map.has(knot.type)) {
+      map.set(knot.type, knotId)
+    }
+  }
+  return map
+}

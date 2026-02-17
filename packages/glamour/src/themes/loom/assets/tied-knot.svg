@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80" width="80" height="80">
+  <!-- Tied Knot — default/generic knot type -->
+  <!-- A decorative Celtic-style knot -->
+  <defs>
+    <linearGradient id="knotGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#5a5a8a" stop-opacity="0.8"/>
+      <stop offset="100%" stop-color="#3a3a5a" stop-opacity="0.6"/>
+    </linearGradient>
+  </defs>
+  <!-- Knot loops — a trefoil-style knot -->
+  <path d="M40 15 Q55 15 55 30 Q55 40 40 40 Q25 40 25 30 Q25 15 40 15"
+        fill="none" stroke="#6a6a9a" stroke-width="3" stroke-linecap="round"/>
+  <path d="M25 40 Q15 45 15 55 Q15 65 25 65 Q35 65 40 55 Q40 45 25 40"
+        fill="none" stroke="#6a6a9a" stroke-width="3" stroke-linecap="round"/>
+  <path d="M40 55 Q45 65 55 65 Q65 65 65 55 Q65 45 55 40 Q45 40 40 55"
+        fill="none" stroke="#6a6a9a" stroke-width="3" stroke-linecap="round"/>
+  <!-- Center intersection -->
+  <circle cx="40" cy="42" r="5" fill="#1a1a2e" stroke="#6a6a9a" stroke-width="1.5"/>
+  <!-- Thread ends -->
+  <path d="M40 15 Q38 8 42 5" fill="none" stroke="#5a5a7a" stroke-width="2" opacity="0.5"/>
+  <path d="M15 58 Q10 62 8 58" fill="none" stroke="#5a5a7a" stroke-width="2" opacity="0.5"/>
+  <path d="M65 58 Q70 62 72 58" fill="none" stroke="#5a5a7a" stroke-width="2" opacity="0.5"/>
+</svg>
