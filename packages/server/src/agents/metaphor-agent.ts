@@ -268,7 +268,7 @@ export class LLMMetaphorEngine implements MetaphorEngine {
   constructor(apiKey: string, model?: string, weaveId?: string) {
     this.client = new Anthropic({ apiKey })
     // Default to Haiku for cheap, fast metaphor generation
-    this.model = model ?? 'claude-haiku-4-20250414'
+    this.model = model ?? 'claude-haiku-4-5-20251001'
     this.weaveId = weaveId ?? null
   }
 
@@ -304,23 +304,44 @@ export class LLMMetaphorEngine implements MetaphorEngine {
   }
 
   async propose(schema: WeaveSchema, count = 3): Promise<MetaphorManifest[]> {
-    const prompt = buildProposalPrompt(schema, count)
-
     log.info({ knots: schema.knots.length, threads: schema.threads.length, count }, 'Loci: proposing metaphors')
 
-    const response = await this.client.messages.create({
-      model: this.model,
-      max_tokens: 8192,
-      system: LOCI_SYSTEM_PROMPT,
-      messages: [{ role: 'user', content: prompt }],
-    })
+    // Generate manifests one at a time to avoid exceeding max_tokens.
+    // Each manifest with granular scoring is ~8-10K tokens — too large for 3 in one call.
+    const manifests: MetaphorManifest[] = []
+    for (let i = 0; i < count; i++) {
+      const prompt = buildProposalPrompt(schema, 1) +
+        (i > 0 ? `\n\nIMPORTANT: Do NOT repeat these already-proposed metaphors: ${manifests.map(m => m.name).join(', ')}. Propose something completely different.` : '')
 
-    const text = response.content
-      .filter((b): b is Anthropic.TextBlock => b.type === 'text')
-      .map(b => b.text)
-      .join('')
+      const response = await this.client.messages.create({
+        model: this.model,
+        max_tokens: 8192,
+        system: LOCI_SYSTEM_PROMPT,
+        messages: [{ role: 'user', content: prompt }],
+      })
 
-    const manifests = parseManifestArray(text)
+      if (response.stop_reason === 'max_tokens') {
+        log.warn({ iteration: i }, 'Loci: response truncated at max_tokens, skipping')
+        continue
+      }
+
+      const text = response.content
+        .filter((b): b is Anthropic.TextBlock => b.type === 'text')
+        .map(b => b.text)
+        .join('')
+
+      try {
+        const parsed = parseManifestArray(text)
+        manifests.push(...parsed)
+      } catch (err) {
+        log.warn({ err, iteration: i }, 'Loci: failed to parse manifest, skipping')
+        continue
+      }
+    }
+
+    if (manifests.length === 0) {
+      throw new Error('Loci failed to produce any valid manifests')
+    }
 
     // Recalculate overall scores to ensure consistency
     for (const m of manifests) {

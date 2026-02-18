@@ -8,7 +8,7 @@ import { graphsRouter } from './routes/graphs.js'
 import { runtimeRouter } from './routes/runtime.js'
 import { schemaRouter } from './routes/schema.js'
 import { adaptersRouter } from './routes/adapters.js'
-import { servicesRouter, setServiceBroadcast } from './routes/services.js'
+import { servicesRouter, setServiceBroadcast, probeServicesOnStartup } from './routes/services.js'
 import { aiRouter } from './routes/ai.js'
 import { errorHandler } from './middleware/errors.js'
 import { setupFileWatcher } from './watcher.js'
@@ -145,4 +145,8 @@ setupFileWatcher(broadcast)
 server.listen(PORT, () => {
   log.info({ port: PORT }, `Weaver server listening on http://localhost:${PORT}`)
   log.info({ port: PORT }, `WebSocket available at ws://localhost:${PORT}/ws`)
+  // Detect any externally-running services (e.g. ComfyUI started before Weaver)
+  probeServicesOnStartup().catch(err =>
+    log.warn({ err }, 'Service probe on startup failed')
+  )
 })

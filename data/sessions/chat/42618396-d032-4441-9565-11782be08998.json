@@ -1,0 +1,35 @@
+{
+  "id": "42618396-d032-4441-9565-11782be08998",
+  "weaveId": "demo-txt2img",
+  "themeId": "loom",
+  "createdAt": "2026-02-18T02:42:59.014Z",
+  "updatedAt": "2026-02-18T02:43:12.098Z",
+  "messages": [
+    {
+      "role": "user",
+      "content": "Use the weaver_activate_glamour tool with weaveId \"demo-txt2img\" and manifestId \"darkroom-metaphor\"",
+      "timestamp": "2026-02-18T02:42:59.029Z"
+    },
+    {
+      "role": "assistant",
+      "content": "I'll activate the \"darkroom-metaphor\" glamour theme for your weave.Perfect! The \"Darkroom Photography\" glamour theme has been activated for your weave. All visual assets were ready and the theme is now live. Your text-to-image workflow will now be visualized through the metaphor of a darkroom photography process rather than the loom metaphor.\n\nThe frontend should immediately display your workflow using darkroom imagery and terminology - showing the flow from concept to final photograph through the various stages of the photographic development process.",
+      "timestamp": "2026-02-18T02:43:12.098Z",
+      "toolCalls": [
+        {
+          "name": "weaver_activate_glamour",
+          "input": {
+            "weaveId": "demo-txt2img",
+            "manifestId": "darkroom-metaphor"
+          },
+          "result": {
+            "success": true,
+            "themeId": "darkroom-metaphor",
+            "themeName": "Darkroom Photography",
+            "pendingAssets": 0,
+            "message": "Glamour \"Darkroom Photography\" activated with all assets ready."
+          }
+        }
+      ]
+    }
+  ]
+}

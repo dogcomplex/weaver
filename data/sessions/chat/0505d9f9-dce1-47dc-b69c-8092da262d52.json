@@ -1,0 +1,34 @@
+{
+  "id": "0505d9f9-dce1-47dc-b69c-8092da262d52",
+  "weaveId": "demo-txt2img",
+  "createdAt": "2026-02-18T02:54:22.730Z",
+  "updatedAt": "2026-02-18T02:54:28.446Z",
+  "messages": [
+    {
+      "role": "user",
+      "content": "Use the weaver_activate_glamour tool with weaveId \"demo-txt2img\" and manifestId \"darkroom-metaphor\"",
+      "timestamp": "2026-02-18T02:54:22.751Z"
+    },
+    {
+      "role": "assistant",
+      "content": "I'll activate the glamour with the \"darkroom-metaphor\" manifest for your ComfyUI txt2img weave.Perfect! The \"Darkroom Photography\" glamour theme has been successfully activated for your txt2img workflow. Since all assets were already cached, the theme should now be fully visible in the frontend with no pending image generation needed.\n\nYour ComfyUI text-to-image workflow is now presented through the darkroom photography metaphor, which likely transforms the technical nodes into familiar darkroom equipment and processes - making the workflow more intuitive to understand and interact with.",
+      "timestamp": "2026-02-18T02:54:28.446Z",
+      "toolCalls": [
+        {
+          "name": "weaver_activate_glamour",
+          "input": {
+            "weaveId": "demo-txt2img",
+            "manifestId": "darkroom-metaphor"
+          },
+          "result": {
+            "success": true,
+            "themeId": "darkroom-metaphor",
+            "themeName": "Darkroom Photography",
+            "pendingAssets": 0,
+            "message": "Glamour \"Darkroom Photography\" activated with all assets ready."
+          }
+        }
+      ]
+    }
+  ]
+}

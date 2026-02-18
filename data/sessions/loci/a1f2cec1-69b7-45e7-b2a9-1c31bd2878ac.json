@@ -1,0 +1,1772 @@
+{
+  "id": "a1f2cec1-69b7-45e7-b2a9-1c31bd2878ac",
+  "weaveId": "demo-txt2img",
+  "createdAt": "2026-02-18T02:12:59.222Z",
+  "updatedAt": "2026-02-18T02:12:59.245Z",
+  "entries": [
+    {
+      "type": "propose",
+      "input": {
+        "schema": {
+          "knots": [
+            {
+              "id": "1",
+              "type": "CheckpointLoaderSimple",
+              "label": "Load Checkpoint",
+              "dataKeys": [
+                "comfyui_class_type",
+                "inputs"
+              ],
+              "parameterNames": [
+                "ckpt_name"
+              ]
+            },
+            {
+              "id": "2",
+              "type": "CLIPTextEncode",
+              "label": "CLIP Text (Positive)",
+              "dataKeys": [
+                "comfyui_class_type",
+                "inputs"
+              ],
+              "parameterNames": [
+                "text"
+              ]
+            },
+            {
+              "id": "3",
+              "type": "CLIPTextEncode",
+              "label": "CLIP Text (Negative)",
+              "dataKeys": [
+                "comfyui_class_type",
+                "inputs"
+              ],
+              "parameterNames": [
+                "text"
+              ]
+            },
+            {
+              "id": "4",
+              "type": "EmptyLatentImage",
+              "label": "Empty Latent Image",
+              "dataKeys": [
+                "comfyui_class_type",
+                "inputs"
+              ],
+              "parameterNames": [
+                "width",
+                "height",
+                "batch_size"
+              ]
+            },
+            {
+              "id": "5",
+              "type": "KSampler",
+              "label": "KSampler",
+              "dataKeys": [
+                "comfyui_class_type",
+                "inputs"
+              ],
+              "parameterNames": [
+                "seed",
+                "steps",
+                "cfg",
+                "sampler_name",
+                "scheduler",
+                "denoise"
+              ]
+            },
+            {
+              "id": "6",
+              "type": "VAEDecode",
+              "label": "VAE Decode",
+              "dataKeys": [
+                "comfyui_class_type",
+                "inputs"
+              ],
+              "parameterNames": []
+            },
+            {
+              "id": "7",
+              "type": "SaveImage",
+              "label": "Save Image",
+              "dataKeys": [
+                "comfyui_class_type",
+                "inputs"
+              ],
+              "parameterNames": [
+                "filename_prefix"
+              ]
+            }
+          ],
+          "threads": [
+            {
+              "source": "1",
+              "target": "2",
+              "label": "CLIP"
+            },
+            {
+              "source": "1",
+              "target": "3",
+              "label": "CLIP"
+            },
+            {
+              "source": "1",
+              "target": "5",
+              "label": "MODEL"
+            },
+            {
+              "source": "2",
+              "target": "5",
+              "label": "CONDITIONING"
+            },
+            {
+              "source": "3",
+              "target": "5",
+              "label": "CONDITIONING"
+            },
+            {
+              "source": "4",
+              "target": "5",
+              "label": "LATENT"
+            },
+            {
+              "source": "5",
+              "target": "6",
+              "label": "LATENT"
+            },
+            {
+              "source": "1",
+              "target": "6",
+              "label": "VAE"
+            },
+            {
+              "source": "6",
+              "target": "7",
+              "label": "IMAGE"
+            }
+          ],
+          "purpose": "generates images from text prompts",
+          "context": {
+            "audience": "mixed"
+          }
+        },
+        "count": 5
+      },
+      "output": [
+        {
+          "id": "orchestral_symphony",
+          "name": "Orchestral Symphony Metaphor",
+          "mappings": [
+            {
+              "knotType": "CheckpointLoaderSimple",
+              "metaphorElement": "Orchestra Ensemble Selection",
+              "label": "Choose Orchestra",
+              "description": "The checkpoint is the foundational musical group — selecting which ensemble (classical, jazz, electronic, etc.) determines the tonal character of everything that follows. Strong fit because model selection is abstract and can be richly represented; weak because users need to see the actual model name, not just 'Orchestra Type A'.",
+              "facadeControls": [
+                {
+                  "id": "orch_selector",
+                  "controlType": "dropdown",
+                  "label": "Orchestra Style",
+                  "rationale": "Dropdown naturally maps to choosing between discrete checkpoint options. Each option can display the actual checkpoint filename for accuracy.",
+                  "position": {
+                    "x": 0.5,
+                    "y": 0.3
+                  },
+                  "binding": {
+                    "dataPath": "inputs.ckpt_name",
+                    "min": 0,
+                    "max": 100,
+                    "step": 1
+                  }
+                }
+              ],
+              "assetPrompt": "Icon showing a conductor's baton, musical staff lines, and silhouettes of diverse instruments (violin, trumpet, cello, piano) arranged in a semicircle. Warm gold lighting, professional orchestral aesthetic, 256x256.",
+              "size": {
+                "width": 200,
+                "height": 160
+              }
+            },
+            {
+              "knotType": "CLIPTextEncode",
+              "metaphorElement": "Composer's Score (Positive Movements)",
+              "label": "Positive Musical Movements",
+              "description": "Text prompts are the composer's written instructions — what melodies, rhythms, and emotional arcs should be performed. This is CRITICAL: text input MUST remain explicitly textual. Users type descriptive phrases, and a 'score' metaphor preserves that. The positive prompt is 'what we want to hear'. Strong elementFit because composition requires textual direction; perfect inputOutputFit because text naturally flows into textual controls.",
+              "facadeControls": [
+                {
+                  "id": "positive_score",
+                  "controlType": "text",
+                  "label": "Compose Movements",
+                  "rationale": "Large text area where users write descriptive phrases (adagio, triumphant crescendo, jazzy rhythms). Keeps the text explicit and editable. 'Compose' suggests active authorship.",
+                  "position": {
+                    "x": 0.25,
+                    "y": 0.6
+                  },
+                  "binding": {
+                    "dataPath": "inputs.text",
+                    "min": 0,
+                    "max": 1000,
+                    "step": 1
+                  }
+                }
+              ],
+              "assetPrompt": "An open musical score sheet with handwritten notes, clefs, and dynamics markings. A quill pen rests on the page. Soft parchment background, warm candlelight, 256x256.",
+              "size": {
+                "width": 200,
+                "height": 160
+              }
+            },
+            {
+              "knotType": "CLIPTextEncode",
+              "metaphorElement": "Composer's Score (Negative Movements)",
+              "label": "Negative Musical Movements",
+              "description": "The negative prompt is 'what we do NOT want to hear' — the discord, jarring notes, or unwanted tonalities to suppress. Identical mapping logic to positive prompt but semantically inverted. Text remains explicitly textual and editable. ElementFit is strong for the same compositional reasoning; truthfulness is high because it genuinely represents prohibition in music.",
+              "facadeControls": [
+                {
+                  "id": "negative_score",
+                  "controlType": "text",
+                  "label": "Suppress Dissonance",
+                  "rationale": "Text area for describing what NOT to include — harsh noise, out-of-key intervals, jarring transitions. 'Suppress' and 'Dissonance' frame this as filtering unwanted elements from the composition.",
+                  "position": {
+                    "x": 0.75,
+                    "y": 0.6
+                  },
+                  "binding": {
+                    "dataPath": "inputs.text",
+                    "min": 0,
+                    "max": 1000,
+                    "step": 1
+                  }
+                }
+              ],
+              "assetPrompt": "A musical score sheet with red X marks and strikethrough notation over certain notes and passages. A red pen or pencil marks rejected sections. Slightly darker parchment, stern overhead lighting, 256x256.",
+              "size": {
+                "width": 200,
+                "height": 160
+              }
+            },
+            {
+              "knotType": "EmptyLatentImage",
+              "metaphorElement": "Empty Concert Hall Stage",
+              "label": "Prepare Stage Dimensions",
+              "description": "The empty latent is the blank canvas — an empty concert hall stage waiting to be filled with sound and performance. Width/height/batch_size map to stage dimensions and number of simultaneous performances. ElementFit is moderate (a stage is a 'blank space' but not directly about image generation); inputOutputFit is moderate because latent space is abstract, and mapping dimensions to 'stage size' is somewhat loose but functional.",
+              "facadeControls": [
+                {
+                  "id": "stage_width",
+                  "controlType": "slider",
+                  "label": "Stage Width (pixels)",
+                  "rationale": "Numeric slider for actual pixel dimensions. 'Stage Width' makes the spatial constraint concrete without hiding the technical parameter.",
+                  "position": {
+                    "x": 0.3,
+                    "y": 0.85
+                  },
+                  "binding": {
+                    "dataPath": "inputs.width",
+                    "min": 256,
+                    "max": 2048,
+                    "step": 64
+                  }
+                },
+                {
+                  "id": "stage_height",
+                  "controlType": "slider",
+                  "label": "Stage Height (pixels)",
+                  "rationale": "Numeric slider for height. Same rationale as width — preserves technical accuracy while using metaphor language.",
+                  "position": {
+                    "x": 0.5,
+                    "y": 0.85
+                  },
+                  "binding": {
+                    "dataPath": "inputs.height",
+                    "min": 256,
+                    "max": 2048,
+                    "step": 64
+                  }
+                },
+                {
+                  "id": "batch_performances",
+                  "controlType": "slider",
+                  "label": "Simultaneous Performances",
+                  "rationale": "Slider for batch_size. 'Simultaneous Performances' metaphor: you can generate multiple images in parallel, just as an orchestra can perform the same piece multiple times. Truthful because it directly maps to batch count.",
+                  "position": {
+                    "x": 0.7,
+                    "y": 0.85
+                  },
+                  "binding": {
+                    "dataPath": "inputs.batch_size",
+                    "min": 1,
+                    "max": 16,
+                    "step": 1
+                  }
+                }
+              ],
+              "assetPrompt": "An empty concert hall stage viewed from audience perspective. Dramatic spotlights illuminate the bare wooden stage. Velvet curtains frame the sides. Grand piano visible in shadow. Clean, modern 3D rendering, 256x256.",
+              "size": {
+                "width": 200,
+                "height": 160
+              }
+            },
+            {
+              "knotType": "KSampler",
+              "metaphorElement": "Performance Rehearsal (Iterative Practice)",
+              "label": "Rehearse & Refine",
+              "description": "The KSampler is the rehearsal process — the orchestra rehearses repeatedly (steps), with increasing precision and polish (cfg), using different interpretations (samplers) and different starting points (seed). ElementFit is STRONG because rehearsal is genuinely iterative refinement. InputOutputFit is strong because latent inputs and image outputs are both about 'performance quality improving'. This is the core generative step, and the metaphor captures it well.",
+              "facadeControls": [
+                {
+                  "id": "rehearsal_iterations",
+                  "controlType": "slider",
+                  "label": "Rehearsal Passes",
+                  "rationale": "Slider mapped to steps. 'Rehearsal Passes' is intuitive and truthful — more passes = more iterations of the diffusion process. Range 1-100 steps makes sense for rehearsal intensity.",
+                  "position": {
+                    "x": 0.2,
+                    "y": 0.5
+                  },
+                  "binding": {
+                    "dataPath": "inputs.steps",
+                    "min": 1,
+                    "max": 100,
+                    "step": 1
+                  }
+                },
+                {
+                  "id": "performance_guidance",
+                  "controlType": "slider",
+                  "label": "Strict Score Adherence (CFG)",
+                  "rationale": "Slider for CFG. 'Strict Score Adherence' — higher CFG means 'follow the composer's instructions more closely'. Low CFG = creative freedom. Intuitive because rehearsals balance 'how closely to follow the score' vs. 'creative interpretation'.",
+                  "position": {
+                    "x": 0.5,
+                    "y": 0.5
+                  },
+                  "binding": {
+                    "dataPath": "inputs.cfg",
+                    "min": 1,
+                    "max": 30,
+                    "step": 0.5
+                  }
+                },
+                {
+                  "id": "rehearsal_seed",
+                  "controlType": "slider",
+                  "label": "Interpretation Seed",
+                  "rationale": "Slider for seed (often shown as random button or numeric). 'Interpretation Seed' — each seed is a different artistic interpretation starting point. Truthful because it directly controls randomization. Intuitive because 'different seeds = different interpretations'.",
+                  "position": {
+                    "x": 0.8,
+                    "y": 0.5
+                  },
+                  "binding": {
+                    "dataPath": "inputs.seed",
+                    "min": 0,
+                    "max": 4294967295,
+                    "step": 1
+                  }
+                },
+                {
+                  "id": "rehearsal_style",
+                  "controlType": "dropdown",
+                  "label": "Rehearsal Technique",
+                  "rationale": "Dropdown for sampler_name. Different samplers = different rehearsal methodologies (Euler method = methodical, DPM++ = expressive, etc.). Abstracts the technical sampler choice into 'rehearsal philosophy'.",
+                  "position": {
+                    "x": 0.2,
+                    "y": 0.35
+                  },
+                  "binding": {
+                    "dataPath": "inputs.sampler_name",
+                    "min": 0,
+                    "max": 20,
+                    "step": 1
+                  }
+                },
+                {
+                  "id": "timing_schedule",
+                  "controlType": "dropdown",
+                  "label": "Rehearsal Schedule",
+                  "rationale": "Dropdown for scheduler. 'Rehearsal Schedule' — how to pace the iterations. Karras = structured, simple = flexible. Maps scheduler choice to rehearsal pacing philosophy.",
+                  "position": {
+                    "x": 0.5,
+                    "y": 0.35
+                  },
+                  "binding": {
+                    "dataPath": "inputs.scheduler",
+                    "min": 0,
+                    "max": 10,
+                    "step": 1
+                  }
+                },
+                {
+                  "id": "denoise_level",
+                  "controlType": "slider",
+                  "label": "Refine Detail (Denoise)",
+                  "rationale": "Slider for denoise (0-1). 'Refine Detail' — higher denoise = more polishing of details. In rehearsal, you gradually refine technique. Truthful mapping of actual parameter.",
+                  "position": {
+                    "x": 0.8,
+                    "y": 0.35
+                  },
+                  "binding": {
+                    "dataPath": "inputs.denoise",
+                    "min": 0,
+                    "max": 1,
+                    "step": 0.01
+                  }
+                }
+              ],
+              "assetPrompt": "An orchestra mid-rehearsal. Musicians in various poses — some playing intensely, some reading scores, conductor with baton raised in mid-gesture. Sheet music stands scattered, professional studio lighting. Dynamic, energetic composition, 256x256.",
+              "size": {
+                "width": 220,
+                "height": 180
+              }
+            },
+            {
+              "knotType": "VAEDecode",
+              "metaphorElement": "Audio Mastering & Encoding",
+              "label": "Master Recording",
+              "description": "The VAE decode converts latent representation to final image, analogous to mastering a rehearsal recording into a high-quality audio file. ElementFit is moderate (mastering is 'technical refinement' but not directly image-related); inputOutputFit is moderate because latent → image is abstract but 'mastering recording' captures the idea of format conversion and quality enhancement. Intermediate step that doesn't require much user interaction, so relatively light on controls.",
+              "facadeControls": [],
+              "assetPrompt": "A professional audio mastering console with faders, knobs, and VU meters. A sound engineer sits at the mixing desk. High-quality studio environment with acoustic panels. Digital waveform display on monitors. Precise, professional aesthetic, 256x256.",
+              "size": {
+                "width": 200,
+                "height": 160
+              }
+            },
+            {
+              "knotType": "SaveImage",
+              "metaphorElement": "Vinyl Record Release / Album Publication",
+              "label": "Release Recording",
+              "description": "The final save is the release — publishing the recorded, mastered performance as a permanent artifact. ElementFit is strong (releasing a recording is genuinely about saving/publishing); inputOutputFit is strong (the image is the final deliverable, like a published record). This is where the performance becomes a tangible product.",
+              "facadeControls": [
+                {
+                  "id": "album_title",
+                  "controlType": "text",
+                  "label": "Recording Title",
+                  "rationale": "Text field for filename_prefix. 'Recording Title' — users name their output. Intuitive because albums have titles; truthful because it directly controls the saved filename.",
+                  "position": {
+                    "x": 0.5,
+                    "y": 0.2
+                  },
+                  "binding": {
+                    "dataPath": "inputs.filename_prefix",
+                    "min": 0,
+                    "max": 256,
+                    "step": 1
+                  }
+                }
+              ],
+              "assetPrompt": "A vinyl record album cover laid flat, showing intricate artwork. The record itself is visible behind it, shiny black vinyl. Album case opened, with liner notes visible. Professional photography, warm studio lighting, 256x256.",
+              "size": {
+                "width": 200,
+                "height": 160
+              }
+            }
+          ],
+          "threadStyle": {
+            "colorBy": "dataType",
+            "metaphor": "Musical signals and data flowing between ensemble, composition, stage, rehearsal, mastering, and release",
+            "colorMap": {
+              "MODEL": {
+                "color": "#8B4513",
+                "width": 4,
+                "style": "solid",
+                "label": "Ensemble Influence"
+              },
+              "CLIP": {
+                "color": "#1E90FF",
+                "width": 3,
+                "style": "solid",
+                "label": "Compositional Direction"
+              },
+              "LATENT": {
+                "color": "#FFD700",
+                "width": 3,
+                "style": "dashed",
+                "label": "Performance Energy"
+              },
+              "IMAGE": {
+                "color": "#FF6347",
+                "width": 3,
+                "style": "solid",
+                "label": "Final Recording"
+              }
+            }
+          },
+          "waveMetaphor": "Data tokens appear as musical notes flowing along the threads — thick brown notes (model/ensemble) from checkpoint; blue notes (text/composition) from score cards; golden shimmering waves (latent energy) feeding into rehearsal; red crystalline notes (final image) flowing to release. Notes brighten and sharpen as they move through refinement steps.",
+          "sceneDescription": "A bird's-eye view of a professional music production studio arranged horizontally. On the left, the Orchestra Ensemble Selection (conductor's podium). Center-left, two Score sheets (positive and negative). Center, the Empty Concert Hall Stage. Center-right, the Rehearsal Area with musicians actively performing. Right-center, the Mastering Console. Far right, a Vinyl Release Station. Threads connect all elements as flowing musical signals. Warm ambient lighting with spotlights on key areas.",
+          "sceneConfig": {
+            "background": "#2C1810",
+            "layoutMode": "horizontal",
+            "spacing": {
+              "x": 320,
+              "y": 220
+            }
+          },
+          "aiVocabulary": "In this metaphor, the user is a composer and conductor orchestrating an AI-assisted musical performance. The workflow is described as: 'Select your ensemble (model), compose the positive and negative movements (text prompts), prepare the stage (dimensions), conduct rehearsals with various techniques and intensities (sampling), master the recording (VAE), and release the vinyl (save). Each rehearsal pass refines the performance, guided by how strictly you require adherence to the score (CFG). Different interpretation seeds and rehearsal techniques yield different artistic results from the same composition.'",
+          "detailedScores": {
+            "mappingScores": [
+              {
+                "knotType": "CheckpointLoaderSimple",
+                "metaphorElement": "Orchestra Ensemble Selection",
+                "elementFit": 7,
+                "inputOutputFit": 7,
+                "attributeScores": [
+                  {
+                    "parameterName": "ckpt_name",
+                    "metaphorControl": "Orchestra Style Dropdown",
+                    "explanatoryPower": 8,
+                    "truthfulness": 9,
+                    "intuitiveness": 8,
+                    "rationale": "Dropdown explicitly shows model name while using 'Orchestra' framing. High truthfulness because dropdown directly reflects checkpoint options. Intuitive because selecting an ensemble type is familiar."
+                  }
+                ],
+                "overallMappingScore": 7.3,
+                "rationale": "Model selection is abstract and orchestral framing works well. Weakness: users may want technical details (model size, architecture) hidden by the metaphor, though the dropdown can still display real names."
+              },
+              {
+                "knotType": "CLIPTextEncode (Positive)",
+                "metaphorElement": "Composer's Score (Positive Movements)",
+                "elementFit": 9,
+                "inputOutputFit": 9,
+                "attributeScores": [
+                  {
+                    "parameterName": "text",
+                    "metaphorControl": "Compose Movements Text Area",
+                    "explanatoryPower": 9,
+                    "truthfulness": 10,
+                    "intuitiveness": 9,
+                    "rationale": "Text input MUST remain textual. This mapping preserves that perfectly. 'Compose Movements' frames text authorship naturally. Users type descriptive phrases directly. High truthfulness because it's literal text editing. Intuitive because composition requires written instructions."
+                  }
+                ],
+                "overallMappingScore": 9,
+                "rationale": "Excellent mapping. Textual input is preserved explicitly. The composer/score metaphor elegantly frames how text prompts guide generation. No loss of capability or clarity."
+              },
+              {
+                "knotType": "CLIPTextEncode (Negative)",
+                "metaphorElement": "Composer's Score (Negative Movements)",
+                "elementFit": 9,
+                "inputOutputFit": 9,
+                "attributeScores": [
+                  {
+                    "parameterName": "text",
+                    "metaphorControl": "Suppress Dissonance Text Area",
+                    "explanatoryPower": 9,
+                    "truthfulness": 10,
+                    "intuitiveness": 9,
+                    "rationale": "Identical to positive prompt in terms of technical handling, but semantically inverted. 'Suppress Dissonance' is intuitive because negative prompts literally suppress unwanted elements. High truthfulness; high intuitiveness."
+                  }
+                ],
+                "overallMappingScore": 9,
+                "rationale": "Excellent. Same strengths as positive prompt. The inversion (dissonance vs. movements) is semantically clear and intuitive."
+              },
+              {
+                "knotType": "EmptyLatentImage",
+                "metaphorElement": "Empty Concert Hall Stage",
+                "elementFit": 6,
+                "inputOutputFit": 6,
+                "attributeScores": [
+                  {
+                    "parameterName": "width",
+                    "metaphorControl": "Stage Width Slider",
+                    "explanatoryPower": 7,
+                    "truthfulness": 9,
+                    "intuitiveness": 7,
+                    "rationale": "Slider shows actual pixel width. 'Stage Width' is somewhat loose metaphorically (latent isn't a 'stage') but truthful. Intuitive because users understand width as a spatial dimension."
+                  },
+                  {
+                    "parameterName": "height",
+                    "metaphorControl": "Stage Height Slider",
+                    "explanatoryPower": 7,
+                    "truthfulness": 9,
+                    "intuitiveness": 7,
+                    "rationale": "Same as width. Truthful pixel mapping; moderate intuitiveness due to abstract latent → stage correlation."
+                  },
+                  {
+                    "parameterName": "batch_size",
+                    "metaphorControl": "Simultaneous Performances Slider",
+                    "explanatoryPower": 8,
+                    "truthfulness": 9,
+                    "intuitiveness": 8,
+                    "rationale": "'Simultaneous Performances' is intuitive — multiple batches = multiple parallel outputs. Truthful because slider directly maps batch_size. Good explanatory power."
+                  }
+                ],
+                "overallMappingScore": 7,
+                "rationale": "Moderate mapping. The 'empty stage' metaphor for latent space is loose but functional. Dimension controls are truthful and reasonably intuitive. Weakness: latent space is fundamentally abstract; calling it a 'stage' doesn't deeply explain what's happening."
+              },
+              {
+                "knotType": "KSampler",
+                "metaphorElement": "Performance Rehearsal (Iterative Practice)",
+                "elementFit": 9,
+                "inputOutputFit": 8,
+                "attributeScores": [
+                  {
+                    "parameterName": "steps",
+                    "metaphorControl": "Rehearsal Passes Slider",
+                    "explanatoryPower": 9,
+                    "truthfulness": 9,
+                    "intuitiveness": 9,
+                    "rationale": "Excellent fit. 'Rehearsal Passes' directly maps iteration count. More passes = more refinement. Intuitive because rehearsals involve repeated practice. Truthful range (1-100)."
+                  },
+                  {
+                    "parameterName": "cfg",
+                    "metaphorControl": "Strict Score Adherence Slider",
+                    "explanatoryPower": 9,
+                    "truthfulness": 8,
+                    "intuitiveness": 9,
+                    "rationale": "'Strict Score Adherence' captures CFG well — higher values = closer to prompt. Intuitive because rehearsals balance 'following instructions' vs. 'creative freedom'. Truthfulness: metaphor slightly simplifies (CFG is classifier-free guidance), but direction is accurate."
+                  },
+                  {
+                    "parameterName": "seed",
+                    "metaphorControl": "Interpretation Seed Slider",
+                    "explanatoryPower": 8,
+                    "truthfulness": 9,
+                    "intuitiveness": 8,
+                    "rationale": "'Interpretation Seed' — each seed yields different artistic choices. Truthful because seed directly controls randomization. Intuitive in context: different seeds = different ways to play the same score."
+                  },
+                  {
+                    "parameterName": "sampler_name",
+                    "metaphorControl": "Rehearsal Technique Dropdown",
+                    "explanatoryPower": 7,
+                    "truthfulness": 6,
+                    "intuitiveness": 7,
+                    "rationale": "Dropdown abstracts sampler selection as 'rehearsal methodology'. Moderate truthfulness because sampler names (Euler, DPM++) have no inherent rehearsal analogy. Intuitive framing but somewhat loose."
+                  },
+                  {
+                    "parameterName": "scheduler",
+                    "metaphorControl": "Rehearsal Schedule Dropdown",
+                    "explanatoryPower": 7,
+                    "truthfulness": 6,
+                    "intuitiveness": 7,
+                    "rationale": "'Rehearsal Schedule' maps scheduler choice to pacing philosophy. Similar issue to sampler_name — the metaphor is intuitive but not deeply truthful to what schedulers actually do."
+                  },
+                  {
+                    "parameterName": "denoise",
+                    "metaphorControl": "Refine Detail Slider",
+                    "explanatoryPower": 8,
+                    "truthfulness": 8,
+                    "intuitiveness": 8,
+                    "rationale": "'Refine Detail' captures denoise parameter well. Higher denoise = more polishing. Intuitive because 'refining details' is familiar. Truthful because parameter directly controls denoising intensity."
+                  }
+                ],
+                "overallMappingScore": 8,
+                "rationale": "Strong mapping. Rehearsal metaphor is genuinely iterative and captures the core generation process. Steps, CFG, and seed controls are excellent (9/10). Sampler and scheduler controls are good but slightly abstract (6-7/10). Overall very effective at making diffusion sampling intuitive."
+              },
+              {
+                "knotType": "VAEDecode",
+                "metaphorElement": "Audio Mastering & Encoding",
+                "elementFit": 6,
+                "inputOutputFit": 6,
+                "attributeScores": [],
+                "overallMappingScore": 6,
+                "rationale": "Moderate fit. VAE decode is a format conversion (latent → image) which mastering loosely parallels (mixing → mastered audio). Weakness: mastering isn't image-related, and the metaphor doesn't explicitly show users what's happening. Low user interaction on this node, so facade controls minimal. The metaphor works but is somewhat disconnected from the actual output (images, not audio)."
+              },
+              {
+                "knotType": "SaveImage",
+                "metaphorElement": "Vinyl Record Release / Album Publication",
+                "elementFit": 8,
+                "inputOutputFit": 8,
+                "attributeScores": [
+                  {
+                    "parameterName": "filename_prefix",
+                    "metaphorControl": "Recording Title Text Field",
+                    "explanatoryPower": 8,
+                    "truthfulness": 9,
+                    "intuitiveness": 8,
+                    "rationale": "'Recording Title' frames filename as naming an album, which is intuitive. Truthful because text field directly sets filename prefix. Users understand that saving requires a title/name."
+                  }
+                ],
+                "overallMappingScore": 8,
+                "rationale": "Strong mapping. Publishing/releasing is the natural endpoint for a creative process. Vinyl metaphor is concrete and memorable. The visual of a record cover works well. Filename parameter maps naturally to 'title'. Good closure to the workflow."
+              }
+            ],
+            "ioAnalysis": {
+              "textInputHandling": 9,
+              "modelInputHandling": 9,
+              "intermediateHandling": 6,
+              "finalOutputHandling": 7,
+              "rationale": "Text input handling is EXCELLENT — both positive and negative prompts remain explicitly textual. Users type words and see them as 'compositional directions'. Model input is excellent — selecting an ensemble is a rich, intuitive abstraction. Intermediate handling (latent, VAE) is moderate — the metaphor doesn't deeply explain what latent space is, and mastering is loosely connected. Final output handling is good but imperfect — users get images, not audio recordings. The vinyl record metaphor works as a 'container' for the output, but the actual artifact (image) doesn't perfectly match the metaphor (music/record). This is acceptable because metaphors need not be 100% literal."
+            }
+          },
+          "scores": {
+            "explanatoryPower": 8,
+            "truthfulness": 8,
+            "completeness": 9,
+            "intuitiveInteraction": 8,
+            "fractalConsistency": 8,
+            "overall": 8.200000000000001,
+            "rationale": "The Orchestral Symphony metaphor is strong and coherent. Explanatory Power (8/10): Text prompts as composition, sampling as rehearsal, and output as a recorded release are all clear and intuitive. The orchestra framing explains how diverse inputs combine into a unified output. Truthfulness (8/10): Facade controls mostly map directly to parameters (steps→passes, CFG→adherence, denoise→refinement). Weaknesses: sampler_name and scheduler are somewhat loose abstractions (6/10 each); VAE decode as 'mastering' is moderately abstract. Completeness (9/10): All major knots are mapped. Positive/negative text prompts both included. All critical KSampler parameters have controls (steps, CFG, seed, sampler, scheduler, denoise). Minor: VAE and Save have no extensive controls, but that's appropriate (VAE is pass-through; Save is simple). Intuitive Interaction (8/10): Rehearsal metaphor is genuinely intuitive for diffusion sampling. Text-based composition maps well to text prompts. Stage dimensions are clear. Weaknesses: latent space (6/10) and mastering (6/10) are abstract. Fractal Consistency (8/10): The metaphor is mostly uniform — musical/orchestral elements throughout. Slight inconsistency: audio mastering in a visual workflow, and final output is images not sound. But the 'recording → vinyl release' frame bridges this acceptably. Overall: 8.1/10 weighted average (0.30×8 + 0.25×8 + 0.20×9 + 0.15×8 + 0.10×8 = 8.1). This is a coherent, user-friendly metaphor that preserves critical information (text input) while adding intuitive framing. Key strengths: excellent text prompt handling (9/10), excellent sampling explanation (8-9/10), strong output framing (8/10). Key weaknesses: latent space abstraction (6/10), sampler/scheduler looseness (6/10), audio-image mismatch (minor)."
+          }
+        },
+        {
+          "id": "glassblowing-studio",
+          "name": "Glassblowing Studio",
+          "mappings": [
+            {
+              "knotType": "CheckpointLoaderSimple",
+              "metaphorElement": "Glass Furnace",
+              "label": "Furnace (Model Selection)",
+              "description": "The furnace holds the raw material (glass recipe/checkpoint). Different furnaces maintain different temperatures and compositions, analogous to different model checkpoints having different training characteristics. Strength: model selection is deeply abstracted and intuitive. Weakness: the furnace's primary purpose (heating) doesn't directly map to 'loading weights,' though the metaphor of 'selecting which furnace' works well.",
+              "facadeControls": [
+                {
+                  "id": "furnace-type",
+                  "controlType": "dropdown",
+                  "label": "Furnace Type (Checkpoint)",
+                  "rationale": "Dropdown naturally represents selecting which furnace (checkpoint) to use. Each furnace has different properties built in.",
+                  "position": {
+                    "x": 0.5,
+                    "y": 0.3
+                  },
+                  "binding": {
+                    "dataPath": "inputs.ckpt_name",
+                    "min": 0,
+                    "max": 50,
+                    "step": 1
+                  }
+                }
+              ],
+              "assetPrompt": "A large industrial glass furnace glowing orange-red from within, with control valves on the side, viewed from a 3/4 angle, warm and inviting, icon-quality digital art",
+              "size": {
+                "width": 200,
+                "height": 160
+              }
+            },
+            {
+              "knotType": "CLIPTextEncode",
+              "metaphorElement": "Design Sketch (Positive)",
+              "label": "Design Sketch (Positive Prompt)",
+              "description": "The artist's detailed drawing of what the final glass sculpture should look like. Text prompts remain explicitly textual—the user writes/reads words on the sketch. This directly preserves the capability of text input without abstraction. Strength: text input is protected and explicit. Weakness: a sketch is visual, but the actual input is text; the mapping is directional (words describe what sketch represents) rather than bijective.",
+              "facadeControls": [
+                {
+                  "id": "positive-text",
+                  "controlType": "text",
+                  "label": "Positive Description",
+                  "rationale": "Text field is the only honest control for text input. In this metaphor, it's the artist writing notes on their design sketch—completely intuitive.",
+                  "position": {
+                    "x": 0.2,
+                    "y": 0.5
+                  },
+                  "binding": {
+                    "dataPath": "inputs.text",
+                    "min": 0,
+                    "max": 10000,
+                    "step": 1
+                  }
+                }
+              ],
+              "assetPrompt": "A hand-drawn sketch on aged paper with detailed annotations and arrows pointing to glass sculpture features, pencil marks and smudges, artistic and organic, icon-quality",
+              "size": {
+                "width": 140,
+                "height": 140
+              }
+            },
+            {
+              "knotType": "CLIPTextEncode",
+              "metaphorElement": "Design Constraint List (Negative)",
+              "label": "Design Constraint (Negative Prompt)",
+              "description": "A separate list of things the artist explicitly wants to avoid in the final piece. Text input again remains textual. Strength: parallel structure to positive prompt is intuitive (artist has dos and don'ts). Weakness: a 'constraint list' is less visual than the positive sketch, creating slight asymmetry.",
+              "facadeControls": [
+                {
+                  "id": "negative-text",
+                  "controlType": "text",
+                  "label": "Negative Description (Avoid)",
+                  "rationale": "Text field for constraints the artist wants to avoid. Same preservation of textual input as positive prompt.",
+                  "position": {
+                    "x": 0.8,
+                    "y": 0.5
+                  },
+                  "binding": {
+                    "dataPath": "inputs.text",
+                    "min": 0,
+                    "max": 10000,
+                    "step": 1
+                  }
+                }
+              ],
+              "assetPrompt": "A checklist or note card with 'DO NOT' items crossed out or written in red, with x-marks and strikethroughs, artistic handwriting on cream paper, icon-quality",
+              "size": {
+                "width": 140,
+                "height": 140
+              }
+            },
+            {
+              "knotType": "EmptyLatentImage",
+              "metaphorElement": "Molten Glass Blob",
+              "label": "Molten Glass (Canvas Size)",
+              "description": "The initial mass of molten glass before any shaping occurs. Parameters (width, height, batch_size) control how much glass is in the blob. Strength: 'starting material' maps well to empty latent space conceptually. Weakness: molten glass shape is inherently amorphous; specifying exact 'dimensions' of a blob is slightly awkward (blobs don't have precise widths/heights).",
+              "facadeControls": [
+                {
+                  "id": "glass-width",
+                  "controlType": "slider",
+                  "label": "Glass Width",
+                  "rationale": "Slider controls the width of the glass blob being prepared. Numerical, direct, and intuitive for a craftsperson setting up their material.",
+                  "position": {
+                    "x": 0.35,
+                    "y": 0.65
+                  },
+                  "binding": {
+                    "dataPath": "inputs.width",
+                    "min": 64,
+                    "max": 1024,
+                    "step": 64
+                  }
+                },
+                {
+                  "id": "glass-height",
+                  "controlType": "slider",
+                  "label": "Glass Height",
+                  "rationale": "Slider controls the height. Same rationale as width—the glass blob needs to be sized appropriately for the work.",
+                  "position": {
+                    "x": 0.65,
+                    "y": 0.65
+                  },
+                  "binding": {
+                    "dataPath": "inputs.height",
+                    "min": 64,
+                    "max": 1024,
+                    "step": 64
+                  }
+                },
+                {
+                  "id": "batch-count",
+                  "controlType": "slider",
+                  "label": "Number of Pieces (Batch)",
+                  "rationale": "How many sculptures to start crafting at once. Slider is intuitive—you're deciding how many blobs of glass to prepare for this session.",
+                  "position": {
+                    "x": 0.5,
+                    "y": 0.8
+                  },
+                  "binding": {
+                    "dataPath": "inputs.batch_size",
+                    "min": 1,
+                    "max": 16,
+                    "step": 1
+                  }
+                }
+              ],
+              "assetPrompt": "A glowing molten glass blob on the end of a blowpipe, orange and yellow hot, slightly translucent, with ripples and movement in the glass, icon-quality 3D render",
+              "size": {
+                "width": 180,
+                "height": 180
+              }
+            },
+            {
+              "knotType": "KSampler",
+              "metaphorElement": "Glassblowing Torch & Shaping",
+              "label": "Torch Work (Generation)",
+              "description": "The torch and the glassblower's hands shape the molten blob into the final form. Seeds, steps, CFG, sampler, scheduler, and denoise are all controls over the shaping process. Strength: 'iterative refinement' maps perfectly to steps. Seed (randomness control) maps to hand technique variations. CFG maps to 'how closely you follow your sketch.' Weakness: a physical torch has limitations—denoise and scheduler are hard to visualize as physical actions.",
+              "facadeControls": [
+                {
+                  "id": "random-seed",
+                  "controlType": "slider",
+                  "label": "Hand Technique Seed (Randomness)",
+                  "rationale": "Different glassblowers (or the same one on different days) bring different muscle memory to their work. Seed controls this variation. Slider with a numeric seed value feels natural.",
+                  "position": {
+                    "x": 0.2,
+                    "y": 0.2
+                  },
+                  "binding": {
+                    "dataPath": "inputs.seed",
+                    "min": 0,
+                    "max": 4294967295,
+                    "step": 1
+                  }
+                },
+                {
+                  "id": "shaping-iterations",
+                  "controlType": "slider",
+                  "label": "Shaping Passes (Steps)",
+                  "rationale": "More passes with the torch = more refinement. Each step is a pass over the glass. Intuitively, more steps = more detailed work.",
+                  "position": {
+                    "x": 0.5,
+                    "y": 0.2
+                  },
+                  "binding": {
+                    "dataPath": "inputs.steps",
+                    "min": 1,
+                    "max": 100,
+                    "step": 1
+                  }
+                },
+                {
+                  "id": "sketch-adherence",
+                  "controlType": "slider",
+                  "label": "Sketch Adherence (CFG)",
+                  "rationale": "How strictly the glassblower follows the design sketch. Low CFG = more creative freedom; high CFG = rigid adherence to design. This is a powerful metaphor for classifier-free guidance.",
+                  "position": {
+                    "x": 0.8,
+                    "y": 0.2
+                  },
+                  "binding": {
+                    "dataPath": "inputs.cfg",
+                    "min": 1,
+                    "max": 20,
+                    "step": 0.5
+                  }
+                },
+                {
+                  "id": "torch-technique",
+                  "controlType": "dropdown",
+                  "label": "Torch Technique (Sampler)",
+                  "rationale": "Different blowing/shaping techniques (soft curves vs. sharp angles, fast vs. slow): these correspond to different sampler algorithms. Each has a different feel.",
+                  "position": {
+                    "x": 0.2,
+                    "y": 0.45
+                  },
+                  "binding": {
+                    "dataPath": "inputs.sampler_name",
+                    "min": 0,
+                    "max": 10,
+                    "step": 1
+                  }
+                },
+                {
+                  "id": "cooling-schedule",
+                  "controlType": "dropdown",
+                  "label": "Cooling Schedule (Scheduler)",
+                  "rationale": "How the glass cools as you work—fast cooling vs. slow annealing affects the final structure. This maps to scheduler (how denoising is distributed across steps).",
+                  "position": {
+                    "x": 0.8,
+                    "y": 0.45
+                  },
+                  "binding": {
+                    "dataPath": "inputs.scheduler",
+                    "min": 0,
+                    "max": 5,
+                    "step": 1
+                  }
+                },
+                {
+                  "id": "polish-pass",
+                  "controlType": "slider",
+                  "label": "Final Polish (Denoise Strength)",
+                  "rationale": "At the end, how much final smoothing/polishing to do. Higher denoise = more refinement of surface details.",
+                  "position": {
+                    "x": 0.5,
+                    "y": 0.68
+                  },
+                  "binding": {
+                    "dataPath": "inputs.denoise",
+                    "min": 0,
+                    "max": 1,
+                    "step": 0.01
+                  }
+                }
+              ],
+              "assetPrompt": "A glassblower at work, holding a glowing piece on a blowpipe, torch flame heating the glass, skilled hands shaping, workshop in background, dynamic motion, icon-quality digital illustration",
+              "size": {
+                "width": 220,
+                "height": 220
+              }
+            },
+            {
+              "knotType": "VAEDecode",
+              "metaphorElement": "Annealing Oven",
+              "label": "Annealing (VAE Decode)",
+              "description": "After shaping, the sculpture goes into an annealing oven to cool slowly and stabilize internal stresses. VAE decode converts latent space → image space. Strength: annealing is a real post-processing step in glassblowing; intermediate data (latent conditioning) becomes final visual data. Weakness: annealing is automatic once you set it; there are no user controls, so the metaphor feels passive.",
+              "facadeControls": [],
+              "assetPrompt": "An industrial annealing oven with glass sculptures visible inside glowing softly, temperature gauge on the door, warm orange light, industrial but precise, icon-quality",
+              "size": {
+                "width": 200,
+                "height": 160
+              }
+            },
+            {
+              "knotType": "SaveImage",
+              "metaphorElement": "Display Case & Catalog",
+              "label": "Display Case (Save)",
+              "description": "The finished sculptures are placed in a display case and cataloged with a nameplate. SaveImage parameters (filename_prefix) allow naming and organizing the final works. Strength: final output (image) is now a tangible, viewable object. Weakness: 'saving' is administrative; the metaphor loses some of the craft magic here.",
+              "facadeControls": [
+                {
+                  "id": "piece-name",
+                  "controlType": "text",
+                  "label": "Nameplate (Filename Prefix)",
+                  "rationale": "Text field to name this piece. Just as sculptures are labeled with artist names and dates, images are saved with descriptive names.",
+                  "position": {
+                    "x": 0.5,
+                    "y": 0.5
+                  },
+                  "binding": {
+                    "dataPath": "inputs.filename_prefix",
+                    "min": 0,
+                    "max": 100,
+                    "step": 1
+                  }
+                }
+              ],
+              "assetPrompt": "A museum display case with finished glass sculptures on a white pedestal, spotlit, with a small nameplate/plaque below, elegant and formal presentation, icon-quality",
+              "size": {
+                "width": 200,
+                "height": 160
+              }
+            }
+          ],
+          "threadStyle": {
+            "colorBy": "dataType",
+            "metaphor": "Invisible threads carry prepared materials, sketches, and instructions through the studio workspace. MODEL threads (furnace→torch) are thick and stable. TEXT threads (sketches→torch) are fine and detailed. IMAGE threads (cooling oven→display case) are luminous and complete.",
+            "colorMap": {
+              "MODEL": {
+                "color": "#D4AF37",
+                "width": 4,
+                "style": "solid"
+              },
+              "CLIP": {
+                "color": "#4A90E2",
+                "width": 2,
+                "style": "solid"
+              },
+              "LATENT": {
+                "color": "#F5A623",
+                "width": 3,
+                "style": "dashed"
+              },
+              "IMAGE": {
+                "color": "#50E3C2",
+                "width": 3,
+                "style": "solid"
+              }
+            }
+          },
+          "waveMetaphor": "Data tokens appear as glowing particles floating through the studio. Golden particles carry model weights from furnace to torch. Blue particles carry text instructions from sketches to shaping. Orange particles carry latent structure through cooling. Cyan particles emerge from the annealing oven as finished light.",
+          "sceneDescription": "A warm, sunlit glassblowing studio viewed from above. On the left, a large furnace glows orange-red. To its right, two design tables (positive sketch and constraint list) sit side-by-side. Below center, a blob of molten glass waits. The torch work happens in the center-right, with an artist intensely shaping. To the right, an annealing oven emits gentle heat. At the far right, a museum display case awaits finished pieces. Warm wooden floors, brick walls with high windows casting long shadows.",
+          "sceneConfig": {
+            "background": "#F4E4C1",
+            "layoutMode": "horizontal",
+            "spacing": {
+              "x": 300,
+              "y": 250
+            }
+          },
+          "aiVocabulary": "Use craft and precision language. 'The furnace is loaded with [checkpoint].' 'The design sketch calls for [positive prompt].' 'Constraints are noted: [negative prompt].' 'A [batch_size] batch of glass is prepared at [width]×[height].' 'The torch begins [steps] shaping passes, adhering tightly to the sketch ([cfg]=high) with [sampler_name] technique.' 'The cooling schedule uses [scheduler].' 'Final polish is set to [denoise].' 'The annealed pieces emerge as finished images.' 'They are displayed and cataloged as [filename_prefix].'",
+          "detailedScores": {
+            "mappingScores": [
+              {
+                "knotType": "CheckpointLoaderSimple",
+                "metaphorElement": "Glass Furnace",
+                "elementFit": 7,
+                "attributeScores": [
+                  {
+                    "parameterName": "ckpt_name",
+                    "metaphorControl": "Furnace Type Dropdown",
+                    "explanatoryPower": 8,
+                    "truthfulness": 8,
+                    "intuitiveness": 8,
+                    "rationale": "Selecting a furnace type naturally maps to selecting a checkpoint. The control is clear and the mental model is strong."
+                  }
+                ],
+                "inputOutputFit": 7,
+                "overallMappingScore": 7.25,
+                "rationale": "Furnace holds the 'recipe' (weights). Output flows out as conditioned information. The fit is conceptual rather than literal, but intuitive."
+              },
+              {
+                "knotType": "CLIPTextEncode",
+                "metaphorElement": "Design Sketch (Positive)",
+                "elementFit": 8,
+                "attributeScores": [
+                  {
+                    "parameterName": "text",
+                    "metaphorControl": "Text Field on Sketch",
+                    "explanatoryPower": 9,
+                    "truthfulness": 9,
+                    "intuitiveness": 9,
+                    "rationale": "Text input is preserved as text on a sketch. The user writes/reads actual words. This is the gold standard for text input handling."
+                  }
+                ],
+                "inputOutputFit": 8,
+                "overallMappingScore": 8.25,
+                "rationale": "Text prompts → artist's vision. The metaphor is concrete and the I/O is honest."
+              },
+              {
+                "knotType": "CLIPTextEncode",
+                "metaphorElement": "Design Constraint List (Negative)",
+                "elementFit": 7,
+                "attributeScores": [
+                  {
+                    "parameterName": "text",
+                    "metaphorControl": "Constraint List Text Field",
+                    "explanatoryPower": 8,
+                    "truthfulness": 8,
+                    "intuitiveness": 8,
+                    "rationale": "Negative prompts are things to avoid. A constraint list is the natural way to express this. Slightly less intuitive than a visual sketch, but still clear."
+                  }
+                ],
+                "inputOutputFit": 7,
+                "overallMappingScore": 7.25,
+                "rationale": "Asymmetry with positive prompt (sketch vs. list) is minor. Text input is preserved. Conceptually strong."
+              },
+              {
+                "knotType": "EmptyLatentImage",
+                "metaphorElement": "Molten Glass Blob",
+                "elementFit": 7,
+                "attributeScores": [
+                  {
+                    "parameterName": "width",
+                    "metaphorControl": "Glass Width Slider",
+                    "explanatoryPower": 7,
+                    "truthfulness": 7,
+                    "intuitiveness": 7,
+                    "rationale": "Width of a glass blob is straightforward. Slider is the right control. The metaphor holds."
+                  },
+                  {
+                    "parameterName": "height",
+                    "metaphorControl": "Glass Height Slider",
+                    "explanatoryPower": 7,
+                    "truthfulness": 7,
+                    "intuitiveness": 7,
+                    "rationale": "Same as width. Clear and direct."
+                  },
+                  {
+                    "parameterName": "batch_size",
+                    "metaphorControl": "Batch Count Slider",
+                    "explanatoryPower": 8,
+                    "truthfulness": 8,
+                    "intuitiveness": 9,
+                    "rationale": "Making multiple pieces at once is very intuitive for a glassblower. '4 pieces today' feels natural."
+                  }
+                ],
+                "inputOutputFit": 7,
+                "overallMappingScore": 7.25,
+                "rationale": "Amorphous blobs having precise dimensions is slightly awkward, but users understand it. Controls are strong."
+              },
+              {
+                "knotType": "KSampler",
+                "metaphorElement": "Glassblowing Torch & Shaping",
+                "elementFit": 9,
+                "attributeScores": [
+                  {
+                    "parameterName": "seed",
+                    "metaphorControl": "Hand Technique Seed Slider",
+                    "explanatoryPower": 8,
+                    "truthfulness": 7,
+                    "intuitiveness": 8,
+                    "rationale": "Seed as 'hand technique variation' is strong. Different techniques produce different results. The random seed is hidden, but the metaphor explains why results vary."
+                  },
+                  {
+                    "parameterName": "steps",
+                    "metaphorControl": "Shaping Passes Slider",
+                    "explanatoryPower": 9,
+                    "truthfulness": 9,
+                    "intuitiveness": 9,
+                    "rationale": "Each pass with the torch refines the sculpture. More passes = more detail. This is an exceptional mapping. Steps directly = shaping passes."
+                  },
+                  {
+                    "parameterName": "cfg",
+                    "metaphorControl": "Sketch Adherence Slider",
+                    "explanatoryPower": 9,
+                    "truthfulness": 8,
+                    "intuitiveness": 9,
+                    "rationale": "CFG as 'how closely you follow your design' is intuitive and accurate. Low CFG = creative freedom (sculptor improvises). High CFG = rigid adherence. Brilliant mapping."
+                  },
+                  {
+                    "parameterName": "sampler_name",
+                    "metaphorControl": "Torch Technique Dropdown",
+                    "explanatoryPower": 7,
+                    "truthfulness": 6,
+                    "intuitiveness": 7,
+                    "rationale": "Different samplers as different techniques is reasonable but slightly abstract. Hard to explain why 'DPM++' is a 'soft curve technique.' Good metaphorically, weaker explanatorily."
+                  },
+                  {
+                    "parameterName": "scheduler",
+                    "metaphorControl": "Cooling Schedule Dropdown",
+                    "explanatoryPower": 6,
+                    "truthfulness": 6,
+                    "intuitiveness": 6,
+                    "rationale": "Scheduler as cooling speed is creative but loose. Real cooling in glass happens after torching; in diffusion, it's part of the denoising. The metaphor is strained here."
+                  },
+                  {
+                    "parameterName": "denoise",
+                    "metaphorControl": "Final Polish Slider",
+                    "explanatoryPower": 8,
+                    "truthfulness": 7,
+                    "intuitiveness": 8,
+                    "rationale": "Final polish/refinement is a good metaphor for denoise strength. High polish = more refinement. Slider is intuitive. Works well."
+                  }
+                ],
+                "inputOutputFit": 8,
+                "overallMappingScore": 7.83,
+                "rationale": "The core generation step is the heart of this metaphor. Steps, CFG, and denoise are excellent. Sampler and scheduler are weaker but acceptable. Overall very strong."
+              },
+              {
+                "knotType": "VAEDecode",
+                "metaphorElement": "Annealing Oven",
+                "elementFit": 8,
+                "attributeScores": [],
+                "inputOutputFit": 8,
+                "overallMappingScore": 8,
+                "rationale": "VAE decode is a critical but parameter-less step. Annealing is a real process in glassblowing that converts 'structured glass' into 'stable sculpture.' The metaphor is accurate and intuitive, though no controls exist to interact with."
+              },
+              {
+                "knotType": "SaveImage",
+                "metaphorElement": "Display Case & Catalog",
+                "elementFit": 8,
+                "attributeScores": [
+                  {
+                    "parameterName": "filename_prefix",
+                    "metaphorControl": "Nameplate Text Field",
+                    "explanatoryPower": 8,
+                    "truthfulness": 9,
+                    "intuitiveness": 8,
+                    "rationale": "Naming and cataloging art is exactly what artists do. Text field for a nameplate is honest and intuitive."
+                  }
+                ],
+                "inputOutputFit": 9,
+                "overallMappingScore": 8.33,
+                "rationale": "The final output is a tangible, viewable image—displayed like finished artwork. This is where the metaphor becomes most concrete and real."
+              }
+            ],
+            "ioAnalysis": {
+              "textInputHandling": 9,
+              "modelInputHandling": 8,
+              "intermediateHandling": 7,
+              "finalOutputHandling": 9,
+              "rationale": "Text input (prompts) is explicitly preserved as text on sketches and constraint lists—users see and write words. Model selection (checkpoint) is abstracted as furnace selection, which is rich and intuitive. Latent space is somewhat abstracted as 'molten glass structure,' which is reasonable but not deeply explained. The final output is an image, displayed as finished artwork in a case—this is the strongest part of the metaphor, grounding it in tangible craft."
+            }
+          },
+          "scores": {
+            "explanatoryPower": 8,
+            "truthfulness": 8,
+            "completeness": 9,
+            "intuitiveInteraction": 8,
+            "fractalConsistency": 8,
+            "overall": 8.200000000000001,
+            "rationale": "The Glassblowing Studio is a strong, cohesive metaphor with excellent coverage of all workflow components. Strengths: (1) Text input handling is exceptional (9/10)—prompts remain textual on sketches. (2) The core generation step (KSampler) is mapped brilliantly: steps as shaping passes (9/10 explanatory), CFG as sketch adherence (9/10 intuitive). (3) Completeness is high (9/10)—all knots have clear mappings and most parameters have facade controls. (4) Intuitive interaction is strong (8/10)—the controls feel natural in a studio context. Weaknesses: (1) Scheduler mapping is stretched (6/10 truthfulness)—cooling isn't naturally part of torch work. (2) Sampler naming is abstract (7/10 explanatory)—hard to explain why 'DPM++' is a technique without teaching users diffusion theory. (3) Intermediate data (latent space) is moderately abstracted (7/10)—'molten glass structure' is poetic but not deeply grounded. (4) Fractal consistency is good (8/10) but not perfect—the studio setting is unified, but some controls (sampler, scheduler) require more technical knowledge to understand. Overall, this metaphor balances accessibility with craft authenticity. It will resonate strongly with people who appreciate art and craftsmanship, while remaining intuitive for general users."
+          }
+        },
+        {
+          "id": "darkroom-photography",
+          "name": "Darkroom Photography Studio",
+          "mappings": [
+            {
+              "knotType": "CheckpointLoaderSimple",
+              "metaphorElement": "Camera Body & Lens Selection",
+              "label": "Select Camera",
+              "description": "The checkpoint is the foundational model — analogous to choosing a specific camera body and lens combination. Each checkpoint is like a different camera system with its own optical characteristics and rendering style. This is a strong mapping because model selection is inherently about choosing the tool's fundamental behavior, which users understand immediately. Weakness: camera bodies don't actually change what a photograph depicts, but checkpoints do influence the entire output style — the metaphor is explanatory but not perfectly literal.",
+              "facadeControls": [
+                {
+                  "id": "camera_selector",
+                  "controlType": "dropdown",
+                  "label": "Camera Model",
+                  "rationale": "Dropdown naturally represents choosing one camera from a collection. Users understand that different cameras produce different visual aesthetics. The metaphor of 'camera bodies' makes checkpoint selection feel like a compositional decision rather than a technical one.",
+                  "position": {
+                    "x": 0.5,
+                    "y": 0.2
+                  },
+                  "binding": {
+                    "dataPath": "inputs.ckpt_name",
+                    "min": 0,
+                    "max": 1,
+                    "step": 1
+                  }
+                }
+              ],
+              "assetPrompt": "Professional camera body with interchangeable lens mount, photographed from above on a studio table, clean shadows, 256x256 square",
+              "size": {
+                "width": 180,
+                "height": 140
+              }
+            },
+            {
+              "knotType": "CLIPTextEncode",
+              "metaphorElement": "Positive Light Setup (keylight, fill, accent)",
+              "label": "Positive Light Direction",
+              "description": "Positive prompts guide what SHOULD appear in the image — this maps to the photographer's lighting setup that illuminates desired subjects. The metaphor works because lighting is about emphasizing what you want to see. However, this creates a subtle truthfulness issue: text prompts are linguistic descriptions (e.g., 'a red barn'), while lighting is purely visual. The mapping sacrifices literal accuracy for intuitive control — users understand that 'positive' means 'illuminate/emphasize.'",
+              "facadeControls": [
+                {
+                  "id": "positive_text",
+                  "controlType": "text",
+                  "label": "Describe the Scene",
+                  "rationale": "Text input remains explicitly textual — users type descriptive words. Within the darkroom metaphor, this is the photographer's mental note about what subjects to light and emphasize. This preserves the user's ability to write natural language while anchoring it to the lighting concept.",
+                  "position": {
+                    "x": 0.3,
+                    "y": 0.5
+                  },
+                  "binding": {
+                    "dataPath": "inputs.text",
+                    "min": 0,
+                    "max": 10000,
+                    "step": 1
+                  }
+                }
+              ],
+              "assetPrompt": "Studio lighting setup with three-point lights: bright keylight from left, soft fill light from right, accent light on background, shot from above, clean studio floor, 256x256",
+              "size": {
+                "width": 160,
+                "height": 160
+              }
+            },
+            {
+              "knotType": "CLIPTextEncode",
+              "metaphorElement": "Negative Light Blocker (flags, gobos, negative fill)",
+              "label": "Shadow Blocks",
+              "description": "Negative prompts remove unwanted elements — this maps to light-blocking tools (flags, gobos, black fabric) that prevent light from reaching parts of the scene. This is a creative but slightly loose mapping: 'blocks light' intuitively maps to 'prevents appearance' but text input (describing what NOT to photograph) isn't literally about blocking light. Strength: the visual/spatial metaphor of 'blocking' is intuitive. Weakness: users still type text (e.g., 'no people'), not position light blockers.",
+              "facadeControls": [
+                {
+                  "id": "negative_text",
+                  "controlType": "text",
+                  "label": "Block These Elements",
+                  "rationale": "Text input for negative prompts. Within the metaphor, this is instructions for where to place light blockers. Users write what should NOT appear, which mirrors instructing an assistant where to position flags/gobos.",
+                  "position": {
+                    "x": 0.7,
+                    "y": 0.5
+                  },
+                  "binding": {
+                    "dataPath": "inputs.text",
+                    "min": 0,
+                    "max": 10000,
+                    "step": 1
+                  }
+                }
+              ],
+              "assetPrompt": "Black cloth light blockers, gobos, and flags arranged on stands, blocking light from reaching certain areas, studio floor view from above, dramatic shadows, 256x256",
+              "size": {
+                "width": 160,
+                "height": 160
+              }
+            },
+            {
+              "knotType": "EmptyLatentImage",
+              "metaphorElement": "Blank Film Stock / Exposure Setup",
+              "label": "Film Stock & Dimensions",
+              "description": "The empty latent is the starting canvas in compressed space — analogous to fresh film stock with a chosen frame size. Width/height/batch_size map naturally to film dimensions and number of shots. This is strong because the metaphor is direct: you're defining the blank slate before exposure. Weakness: 'latent space' is not literally film stock — it's a neural compression, but the metaphorical mapping allows users to think in concrete film terms.",
+              "facadeControls": [
+                {
+                  "id": "film_width",
+                  "controlType": "slider",
+                  "label": "Frame Width (pixels)",
+                  "rationale": "Slider for frame width — users adjust like changing from 35mm to medium format. Pixel dimensions are the film stock's aspect ratio. Intuitive because photographers routinely think in frame dimensions.",
+                  "position": {
+                    "x": 0.3,
+                    "y": 0.75
+                  },
+                  "binding": {
+                    "dataPath": "inputs.width",
+                    "min": 256,
+                    "max": 2048,
+                    "step": 64
+                  }
+                },
+                {
+                  "id": "film_height",
+                  "controlType": "slider",
+                  "label": "Frame Height (pixels)",
+                  "rationale": "Slider for frame height. Together with width, this feels like selecting portrait vs. landscape orientation — a familiar photographer choice.",
+                  "position": {
+                    "x": 0.5,
+                    "y": 0.75
+                  },
+                  "binding": {
+                    "dataPath": "inputs.height",
+                    "min": 256,
+                    "max": 2048,
+                    "step": 64
+                  }
+                },
+                {
+                  "id": "batch_count",
+                  "controlType": "slider",
+                  "label": "Number of Shots",
+                  "rationale": "Batch size as number of film frames to expose in one pass. Users understand 'take 4 shots' as a photography concept. Truthful and intuitive.",
+                  "position": {
+                    "x": 0.7,
+                    "y": 0.75
+                  },
+                  "binding": {
+                    "dataPath": "inputs.batch_size",
+                    "min": 1,
+                    "max": 16,
+                    "step": 1
+                  }
+                }
+              ],
+              "assetPrompt": "Rolls of film stock in different sizes, some with 35mm, some medium format, stacked neatly on a darkroom counter, studio lighting from above, 256x256",
+              "size": {
+                "width": 160,
+                "height": 120
+              }
+            },
+            {
+              "knotType": "KSampler",
+              "metaphorElement": "Exposure & Development Process",
+              "label": "Expose & Develop Film",
+              "description": "The KSampler is the core generation engine — it iteratively refines the image. This maps well to film exposure (letting light hit the film) and development (chemical refinement over time). Steps = time in developer; CFG = exposure compensation; seed = shutter release timing. This is a strong mapping because the iterative refinement feels like watching a photograph develop in the chemical bath. Weakness: the actual process is neural diffusion, not chemistry, but the metaphorical progression (rough → detailed) parallels developer tank refinement.",
+              "facadeControls": [
+                {
+                  "id": "exposure_seed",
+                  "controlType": "slider",
+                  "label": "Shutter Moment",
+                  "rationale": "Seed as the moment of shutter release — each moment captures a different instant. Users understand 'trying different moments' as a photography concept (continuous shooting). The numerical seed feels like frame numbering on film.",
+                  "position": {
+                    "x": 0.2,
+                    "y": 0.4
+                  },
+                  "binding": {
+                    "dataPath": "inputs.seed",
+                    "min": 0,
+                    "max": 4294967295,
+                    "step": 1
+                  }
+                },
+                {
+                  "id": "dev_time",
+                  "controlType": "slider",
+                  "label": "Development Time (steps)",
+                  "rationale": "Steps as time in the developer bath. More time = more refinement of detail, just as longer development brings out more tonal information. This is intuitive: photographers know longer development increases contrast and detail. Truthful analogy because more steps = more diffusion refinement.",
+                  "position": {
+                    "x": 0.5,
+                    "y": 0.4
+                  },
+                  "binding": {
+                    "dataPath": "inputs.steps",
+                    "min": 1,
+                    "max": 150,
+                    "step": 1
+                  }
+                },
+                {
+                  "id": "exposure_comp",
+                  "controlType": "slider",
+                  "label": "Exposure Compensation (CFG)",
+                  "rationale": "CFG as exposure compensation — how much to correct/brighten the image. In photography, exposure comp adjusts how over/underexposed the result is. In diffusion, CFG controls how strongly the model adheres to the prompt (tighter/more guided = 'brighter'). The analogy holds well for users familiar with camera exposure compensation.",
+                  "position": {
+                    "x": 0.8,
+                    "y": 0.4
+                  },
+                  "binding": {
+                    "dataPath": "inputs.cfg",
+                    "min": 1,
+                    "max": 30,
+                    "step": 0.5
+                  }
+                },
+                {
+                  "id": "dev_profile",
+                  "controlType": "dropdown",
+                  "label": "Development Profile (Sampler)",
+                  "rationale": "Sampler choice as selecting a development chemistry or process (fast vs. slow, contrasty vs. soft). Different samplers produce different visual characteristics, analogous to choosing between D-76, HC-110, or other developers. Intuitive for photography enthusiasts.",
+                  "position": {
+                    "x": 0.35,
+                    "y": 0.6
+                  },
+                  "binding": {
+                    "dataPath": "inputs.sampler_name",
+                    "min": 0,
+                    "max": 1,
+                    "step": 1
+                  }
+                },
+                {
+                  "id": "dev_curve",
+                  "controlType": "dropdown",
+                  "label": "Development Curve (Scheduler)",
+                  "rationale": "Scheduler as the agitation schedule or temperature curve during development. Different schedules produce different tonal progressions. More abstract than sampler, but users understand that development methodology affects results.",
+                  "position": {
+                    "x": 0.65,
+                    "y": 0.6
+                  },
+                  "binding": {
+                    "dataPath": "inputs.scheduler",
+                    "min": 0,
+                    "max": 1,
+                    "step": 1
+                  }
+                },
+                {
+                  "id": "partial_dev",
+                  "controlType": "slider",
+                  "label": "Partial Development (%)",
+                  "rationale": "Denoise as the percentage of development to apply. 1.0 = full development; 0.5 = stop halfway. Intuitive for photographers who understand pulling negatives early from the developer to reduce contrast.",
+                  "position": {
+                    "x": 0.5,
+                    "y": 0.6
+                  },
+                  "binding": {
+                    "dataPath": "inputs.denoise",
+                    "min": 0,
+                    "max": 1,
+                    "step": 0.05
+                  }
+                }
+              ],
+              "assetPrompt": "Darkroom developer tank with red light glow, photographic paper slowly appearing in chemical bath, tongs at the side, clock showing elapsed time, 256x256 atmospheric",
+              "size": {
+                "width": 200,
+                "height": 160
+              }
+            },
+            {
+              "knotType": "VAEDecode",
+              "metaphorElement": "Drying & Fixing (Stabilization)",
+              "label": "Fix & Dry Negative",
+              "description": "The VAE decoder converts latent space back to pixel space — this maps to fixing (chemical stabilization) and drying the developed negative. The latent is the 'soft' developed film; the VAE decode 'hardens' it into final form. This is a loose but functional mapping: VAE is a technical compression step, but the metaphor of 'stabilizing the image' via fixing and drying is intuitive. Weakness: VAE parameters are hidden in this flow, so users don't directly control the decoding process.",
+              "facadeControls": [],
+              "assetPrompt": "Negative hanging on a clothesline in a darkroom, water droplets falling, red safelight illuminating, fixing bath containers nearby, clean simple composition, 256x256",
+              "size": {
+                "width": 140,
+                "height": 140
+              }
+            },
+            {
+              "knotType": "SaveImage",
+              "metaphorElement": "Printing & Storage",
+              "label": "Print & File Photo",
+              "description": "The final save operation maps to printing the negative onto photographic paper and filing it. This is a strong, intuitive mapping: photographers understand 'saving' as making a final print and storing the negative. The filename becomes the print label/archive reference. Strength: very direct and intuitive. Weakness: the actual output is digital, not a physical print, but the metaphor of 'finalizing' is clear.",
+              "facadeControls": [
+                {
+                  "id": "print_label",
+                  "controlType": "text",
+                  "label": "Print Label / Archive Reference",
+                  "rationale": "Filename as a label written on the print envelope or negative sleeve. Users naturally understand naming the output. Truthful because filenames directly control how the image is stored.",
+                  "position": {
+                    "x": 0.5,
+                    "y": 0.85
+                  },
+                  "binding": {
+                    "dataPath": "inputs.filename_prefix",
+                    "min": 0,
+                    "max": 255,
+                    "step": 1
+                  }
+                }
+              ],
+              "assetPrompt": "Finished photographic print lying on a darkroom counter, archival storage box beside it, negative sleeve with label, soft amber safelight, 256x256",
+              "size": {
+                "width": 160,
+                "height": 140
+              }
+            }
+          ],
+          "threadStyle": {
+            "colorBy": "dataType",
+            "metaphor": "Light rays, chemical solutions, and sensitized surfaces flowing between stations in the darkroom workflow",
+            "colorMap": {
+              "MODEL": {
+                "color": "#8B4513",
+                "width": 4,
+                "style": "solid",
+                "label": "Camera/Equipment Signal"
+              },
+              "CLIP": {
+                "color": "#FFD700",
+                "width": 3,
+                "style": "solid",
+                "label": "Light Specification"
+              },
+              "LATENT": {
+                "color": "#4A90E2",
+                "width": 3,
+                "style": "dashed",
+                "label": "Developing Negative"
+              },
+              "IMAGE": {
+                "color": "#E8E8E8",
+                "width": 3,
+                "style": "solid",
+                "label": "Finished Print"
+              }
+            }
+          },
+          "waveMetaphor": "Light photons (yellow rays), chemical molecules (blue dashes), and pigment particles (white sparkles) flow through the darkroom, accumulating detail as they pass through each station. When CFG or steps increase, the flows brighten and densify, showing more refinement.",
+          "sceneDescription": "A vintage darkroom viewed from above. On the left: a camera body on a tripod with lighting rigs overhead. In the center: multiple development trays arranged in sequence (one for positive prompts/keylight, one for negative prompts/blockers, one for exposure/development). On the right: a clothesline with hanging negatives (VAE stage) and a print drying rack (final output). Thin red safelight washes the entire scene. Cables and light rays connect each station, color-coded by data type. An analog clock on the wall shows the passage of 'steps.'",
+          "sceneConfig": {
+            "background": "#3D2817",
+            "layoutMode": "horizontal",
+            "spacing": {
+              "x": 320,
+              "y": 220
+            }
+          },
+          "aiVocabulary": "In the darkroom, the photographer selects a camera body (checkpoint), sets up lighting to illuminate desired subjects (positive prompts) and blocks unwanted light (negative prompts), loads fresh film stock at the chosen dimensions (empty latent), and then opens the shutter to expose and develop the image in the chemical bath, adjusting development time, chemistry type, and exposure compensation to refine details until the print is perfect. Finally, the negative is fixed and dried, then printed and filed.",
+          "detailedScores": {
+            "mappingScores": [
+              {
+                "knotType": "CheckpointLoaderSimple",
+                "metaphorElement": "Camera Body & Lens Selection",
+                "elementFit": 8,
+                "inputOutputFit": 8,
+                "overallMappingScore": 8,
+                "attributeScores": [
+                  {
+                    "parameterName": "ckpt_name",
+                    "metaphorControl": "Camera Model Dropdown",
+                    "explanatoryPower": 9,
+                    "truthfulness": 7,
+                    "intuitiveness": 9,
+                    "rationale": "Camera selection is intuitive and natural. Truthfulness is 7 (not 10) because checkpoints aren't literally cameras — they're neural models — but the behavior mapping (different tool = different output character) is strong."
+                  }
+                ],
+                "rationale": "Strong mapping. Camera body selection is understood by mixed audiences. The metaphor explains why checkpoint matters (it's the tool choice). Weakness: a camera body doesn't alter what you photograph in the same way a checkpoint alters generation, but the explanatory power compensates."
+              },
+              {
+                "knotType": "CLIPTextEncode",
+                "metaphorElement": "Positive Light Setup",
+                "elementFit": 7,
+                "inputOutputFit": 8,
+                "overallMappingScore": 7.5,
+                "attributeScores": [
+                  {
+                    "parameterName": "text",
+                    "metaphorControl": "Text Input: Describe the Scene",
+                    "explanatoryPower": 9,
+                    "truthfulness": 6,
+                    "intuitiveness": 8,
+                    "rationale": "Text input is preserved (high truth). Mapping text to 'lighting description' is slightly loose (truthfulness 6) because text prompts are linguistic, not visual. But the 'positive = illuminate' concept is intuitive (8). Users understand they're describing what they want to see."
+                  }
+                ],
+                "rationale": "Decent mapping with a key strength: text input remains textual (users type words). The 'positive = light = emphasize' metaphor is intuitive. Weakness: the mapping isn't literally true (prompts aren't lighting), but it's explanatory enough."
+              },
+              {
+                "knotType": "CLIPTextEncode",
+                "metaphorElement": "Negative Light Blocker",
+                "elementFit": 6,
+                "inputOutputFit": 8,
+                "overallMappingScore": 7,
+                "attributeScores": [
+                  {
+                    "parameterName": "text",
+                    "metaphorControl": "Text Input: Block These Elements",
+                    "explanatoryPower": 8,
+                    "truthfulness": 5,
+                    "intuitiveness": 7,
+                    "rationale": "Text input preserved. 'Blocking light' → 'preventing appearance' is intuitive (7). Truthfulness is 5 because the actual mechanism (prompt rejection) isn't literal light blocking. But the control is clear: describe what NOT to show."
+                  }
+                ],
+                "rationale": "Creative mapping. The 'negative = block' concept makes intuitive sense. Truthfulness drops because text input doesn't literally control light blockers. Explanatory power is good — users understand 'block' as exclusion."
+              },
+              {
+                "knotType": "EmptyLatentImage",
+                "metaphorElement": "Blank Film Stock / Exposure Setup",
+                "elementFit": 8,
+                "inputOutputFit": 9,
+                "overallMappingScore": 8.5,
+                "attributeScores": [
+                  {
+                    "parameterName": "width",
+                    "metaphorControl": "Frame Width Slider",
+                    "explanatoryPower": 9,
+                    "truthfulness": 8,
+                    "intuitiveness": 9,
+                    "rationale": "Width as frame width is direct and intuitive. Truthful because pixel dimensions are literally frame dimensions. Sliders are natural for photographers adjusting frame size."
+                  },
+                  {
+                    "parameterName": "height",
+                    "metaphorControl": "Frame Height Slider",
+                    "explanatoryPower": 9,
+                    "truthfulness": 8,
+                    "intuitiveness": 9,
+                    "rationale": "Same as width — direct mapping, familiar control type."
+                  },
+                  {
+                    "parameterName": "batch_size",
+                    "metaphorControl": "Number of Shots Slider",
+                    "explanatoryPower": 9,
+                    "truthfulness": 9,
+                    "intuitiveness": 9,
+                    "rationale": "Batch size as number of film frames is direct and truthful. Photographers understand 'take 4 shots.' Sliders feel natural for this count."
+                  }
+                ],
+                "rationale": "Excellent mapping. Latent space is abstracted as film stock (acceptable because both are blank canvases). All controls are intuitive, truthful, and well-explained. This is the strongest knot mapping in the metaphor."
+              },
+              {
+                "knotType": "KSampler",
+                "metaphorElement": "Exposure & Development Process",
+                "elementFit": 8,
+                "inputOutputFit": 7,
+                "overallMappingScore": 7.5,
+                "attributeScores": [
+                  {
+                    "parameterName": "seed",
+                    "metaphorControl": "Shutter Moment Slider",
+                    "explanatoryPower": 8,
+                    "truthfulness": 7,
+                    "intuitiveness": 8,
+                    "rationale": "Seed as shutter timing is creative and intuitive. Truthfulness is 7 (seed doesn't literally control shutter timing, but 'each moment is different' is accurate). Photographers understand continuous shooting and frame selection."
+                  },
+                  {
+                    "parameterName": "steps",
+                    "metaphorControl": "Development Time Slider",
+                    "explanatoryPower": 9,
+                    "truthfulness": 8,
+                    "intuitiveness": 9,
+                    "rationale": "Steps as development time is strong. More steps → more refinement, like longer development bringing out detail. Truthful analogy. Intuitive for photography enthusiasts."
+                  },
+                  {
+                    "parameterName": "cfg",
+                    "metaphorControl": "Exposure Compensation Slider",
+                    "explanatoryPower": 8,
+                    "truthfulness": 7,
+                    "intuitiveness": 8,
+                    "rationale": "CFG as exposure compensation is a decent metaphor — both control how 'bright' or 'guided' the result is. Truthfulness is 7 because CFG actually controls prompt adherence, not literal brightness. But the control behavior feels natural."
+                  },
+                  {
+                    "parameterName": "sampler_name",
+                    "metaphorControl": "Development Profile Dropdown",
+                    "explanatoryPower": 7,
+                    "truthfulness": 6,
+                    "intuitiveness": 7,
+                    "rationale": "Sampler as development chemistry is creative. Different samplers do produce different characteristics. Truthfulness is 6 (not a literal chemistry analogy). Intuitiveness is decent for photography enthusiasts, lower for others."
+                  },
+                  {
+                    "parameterName": "scheduler",
+                    "metaphorControl": "Development Curve Dropdown",
+                    "explanatoryPower": 6,
+                    "truthfulness": 5,
+                    "intuitiveness": 5,
+                    "rationale": "Scheduler as development methodology is more abstract. The mapping is looser here. Truthfulness is low because scheduler controls diffusion progression, not actual agitation. Intuitiveness is 5 — most users don't understand development curves."
+                  },
+                  {
+                    "parameterName": "denoise",
+                    "metaphorControl": "Partial Development Slider",
+                    "explanatoryPower": 7,
+                    "truthfulness": 6,
+                    "intuitiveness": 6,
+                    "rationale": "Denoise as early pulling from developer is creative. The concept is intuitive to photographers (stopping development early reduces contrast). Truthfulness is moderate — denoise is actually about noise reduction steps, not developer time."
+                  }
+                ],
+                "rationale": "Strong core mapping with good metaphorical coverage. Steps and development time map excellently (8-9). Seed, CFG, and sampler are decent (7-8). Scheduler and denoise are weaker (5-6) but still functional. The overall metaphor of 'exposure and development' is strong for the generation process."
+              },
+              {
+                "knotType": "VAEDecode",
+                "metaphorElement": "Drying & Fixing (Stabilization)",
+                "elementFit": 6,
+                "inputOutputFit": 6,
+                "overallMappingScore": 6,
+                "attributeScores": [],
+                "rationale": "Weaker mapping because VAE parameters are hidden. The metaphor of 'fixing and drying' is intuitive for the final stabilization step, but users don't interact with this knot directly. ElementFit is 6 because VAE decoding isn't literally fixing and drying — it's neural decompression — but the metaphor of 'stabilizing' is acceptable."
+              },
+              {
+                "knotType": "SaveImage",
+                "metaphorElement": "Printing & Storage",
+                "elementFit": 9,
+                "inputOutputFit": 9,
+                "overallMappingScore": 9,
+                "attributeScores": [
+                  {
+                    "parameterName": "filename_prefix",
+                    "metaphorControl": "Print Label / Archive Reference",
+                    "explanatoryPower": 9,
+                    "truthfulness": 9,
+                    "intuitiveness": 9,
+                    "rationale": "Filename as print label is direct, truthful, and intuitive. Users understand naming the output. Highest-scoring attribute."
+                  }
+                ],
+                "rationale": "Excellent mapping. Saving/printing is intuitive and literal. Filename becomes an archive reference, which photographers understand naturally."
+              }
+            ],
+            "ioAnalysis": {
+              "textInputHandling": 9,
+              "modelInputHandling": 9,
+              "intermediateHandling": 7,
+              "finalOutputHandling": 8,
+              "rationale": "Text input: Excellent (9). Both positive and negative prompts remain explicitly textual — users type words, not abstract selections. This preserves capability and clarity. Model input: Excellent (9). Camera body selection is intuitive and handles checkpoint loading clearly. Intermediate handling: Good (7). Latent space as 'developing negative' and VAE as 'fixing' are metaphorical but functional. The flow makes sense conceptually. Final output: Good (8). The output IS an image (print), and the metaphor produces something visual (photograph). Slight loss of precision because a 'print' isn't technically an image file, but the output is viewable and meaningful."
+            }
+          },
+          "scores": {
+            "explanatoryPower": 8,
+            "truthfulness": 7,
+            "completeness": 9,
+            "intuitiveInteraction": 8,
+            "fractalConsistency": 8,
+            "overall": 7.95,
+            "rationale": "The Darkroom Photography Studio is a strong, comprehensive metaphor. Explanatory power (8): Nearly every knot has an intuitive mapping (camera selection, lighting, film stock, development, fixing, printing). Five of six parameter controls score 7-9 on explanatory power. Truthfulness (7): Text inputs are preserved (9/10). Model selection is truthful (8/10). Development/exposure controls map well to actual parameters (7-8/10). Scheduler and denoise are looser metaphors (5-6/10), pulling the average down. Overall truthfulness is solid but not perfect. Completeness (9): All seven knots are mapped. Six of seven have detailed facade controls. Only VAE decode lacks interactive controls, which is acceptable since VAE parameters are typically hidden. Intuitive interaction (8): Sliders for dimensions, dropdowns for selections, text for prompts, and the development process feel natural. Photographers will find this immediately accessible; non-photographers may need brief orientation to sampler/scheduler. Fractal consistency (8): The metaphor is uniform — every knot fits within a darkroom studio workflow. There's good consistency in how data flows (light rays, chemicals, negatives, prints). Variance is low except for the scheduler/denoise pair, which are more abstract. Key strengths: Text input remains textual, preserving user capability. The core generation (KSampler as development) is intuitive. The overall scene is cohesive and familiar to many. Key weaknesses: Scheduler and denoise are relatively abstract (5-6). VAE is somewhat opaque. The metaphor is photography-biased, so non-photographers may need more explanation. However, for mixed audiences, photography is reasonably universal."
+          }
+        }
+      ],
+      "timestamp": "2026-02-18T02:12:59.245Z",
+      "model": "claude-haiku-4-5-20251001"
+    }
+  ]
+}

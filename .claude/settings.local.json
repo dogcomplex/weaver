@@ -49,7 +49,8 @@
       "Bash(tasklist:*)",
       "Bash(cmd /c:*)",
       "Bash(npx vite:*)",
-      "Bash(timeout:*)"
+      "Bash(timeout:*)",
+      "Bash(cmd.exe /c \"tasklist | findstr python\")"
     ]
   }
 }

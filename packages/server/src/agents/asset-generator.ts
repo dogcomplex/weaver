@@ -71,21 +71,21 @@ function buildTxt2ImgWorkflow(prompt: string, size = 512): Record<string, any> {
     '1': {
       class_type: 'CheckpointLoaderSimple',
       inputs: {
-        ckpt_name: 'sd_xl_base_1.0.safetensors',
+        ckpt_name: 'v1-5-pruned-emaonly.safetensors',
       },
     },
     '2': {
       class_type: 'CLIPTextEncode',
       inputs: {
         text: `${prompt}, icon, clean design, centered, simple background, digital art, high quality`,
-        clip: ['1', 0],
+        clip: ['1', 1],  // CheckpointLoaderSimple output 1 = CLIP
       },
     },
     '3': {
       class_type: 'CLIPTextEncode',
       inputs: {
         text: 'text, watermark, blurry, low quality, noisy, deformed',
-        clip: ['1', 0],
+        clip: ['1', 1],  // CheckpointLoaderSimple output 1 = CLIP
       },
     },
     '4': {
@@ -146,6 +146,10 @@ export async function generateAsset(
     // Ensure resolver knows about cached assets too
     const resolverKey = knotId ? `${knotType}_${knotId}_${hash}` : `${knotType}_${hash}`
     serverAssetResolver.register(resolverKey, { type: 'image', url, hash })
+    // Also broadcast so live renderers can hot-swap immediately
+    if (knotId) {
+      broadcast({ type: 'glamour-asset', knotId, hash, url })
+    }
     return { hash, url, cached: true }
   }
 
@@ -173,7 +177,7 @@ export async function generateAsset(
       } catch {
         continue
       }
-      if (history[promptId]?.status?.completed) break
+      if (history[promptId]?.status?.status_str === 'success') break
       if (history[promptId]?.status?.status_str === 'error') {
         throw new Error('ComfyUI execution failed')
       }
@@ -247,6 +251,8 @@ export async function generateManifestAssets(
     const url = assetUrl(hash)
     const cached = await isCached(hash)
 
+    const knotId = knotIdMap?.get(mapping.knotType)
+
     results.push({
       knotType: mapping.knotType,
       hash,
@@ -254,9 +260,17 @@ export async function generateManifestAssets(
       pending: !cached,
     })
 
-    // Queue uncached assets for background generation
-    if (!cached) {
-      const knotId = knotIdMap?.get(mapping.knotType)
+    if (cached) {
+      // Register cached asset in resolver so hydration endpoint returns it
+      const resolverKey = knotId ? `${mapping.knotType}_${knotId}_${hash}` : `${mapping.knotType}_${hash}`
+      serverAssetResolver.register(resolverKey, { type: 'image', url, hash })
+      // Also register type-level key so duplicate knots of same type resolve
+      serverAssetResolver.register(`${manifest.id}_${mapping.knotType}`, { type: 'image', url, hash })
+      // Broadcast so live renderers can hot-swap immediately
+      if (knotId) {
+        broadcast({ type: 'glamour-asset', knotId, hash, url })
+      }
+    } else {
       // Fire and forget — don't block on ComfyUI
       generateAsset(mapping.assetPrompt, mapping.knotType, knotId).catch(err => {
         log.error({ err, knotType: mapping.knotType }, 'Background asset generation failed')

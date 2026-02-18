@@ -82,21 +82,16 @@ export function ServicePanel() {
     setLogs(prev => ({ ...prev, [id]: [] }))
     setExpanded(id)
     try {
-      await fetch(`/api/services/${id}/stop`, { method: 'POST' })
+      // Use atomic restart endpoint — server handles stop + wait + start
+      const res = await fetch(`/api/services/${id}/restart`, { method: 'POST' })
+      const result = await res.json()
+      if (result.status === 'starting') {
+        setServices(prev => ({
+          ...prev,
+          [id]: { ...prev[id], status: 'starting' },
+        }))
+      }
     } catch {}
-    // Brief delay to let stop complete, then force-start
-    setTimeout(async () => {
-      try {
-        const res = await fetch(`/api/services/${id}/start?force=true`, { method: 'POST' })
-        const result = await res.json()
-        if (result.status === 'starting') {
-          setServices(prev => ({
-            ...prev,
-            [id]: { ...prev[id], status: 'starting' },
-          }))
-        }
-      } catch {}
-    }, 500)
   }, [])
 
   const loadLogs = useCallback(async (id: string) => {
@@ -191,12 +186,14 @@ function StatusDot({ status }: { status: string }) {
 }
 
 function logLineStyle(line: string): React.CSSProperties {
-  const isError = line.includes('[stderr]') || line.toLowerCase().includes('error')
+  const lower = line.toLowerCase()
+  const isError = lower.includes('error') || lower.includes('traceback') || lower.includes('exception')
+  const isWarning = lower.includes('warning') || lower.includes('warn')
   const isWeaver = line.startsWith('[weaver]')
   return {
     fontSize: 10,
     fontFamily: 'monospace',
-    color: isError ? '#e66' : isWeaver ? '#6a6aff' : '#888',
+    color: isError ? '#e66' : isWarning ? '#ca4' : isWeaver ? '#6a6aff' : '#888',
     whiteSpace: 'pre-wrap',
     wordBreak: 'break-all',
     lineHeight: 1.4,

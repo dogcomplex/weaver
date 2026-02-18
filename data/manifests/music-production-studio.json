@@ -1,0 +1,534 @@
+{
+  "id": "music-production-studio",
+  "name": "Music Production Studio",
+  "mappings": [
+    {
+      "knotType": "CheckpointLoaderSimple",
+      "metaphorElement": "Instrument Selection Board",
+      "label": "Choose Instrument",
+      "description": "Loading a checkpoint is like selecting which instrument (synthesizer, guitar, etc.) you'll use for the entire composition. The checkpoint defines the 'voice' of the output, just as an instrument defines its sonic character. Strength: intuitive selection metaphor. Weakness: doesn't perfectly capture that a checkpoint contains full AI model weights, not just tonal character.",
+      "facadeControls": [
+        {
+          "id": "ckpt-selector",
+          "controlType": "dropdown",
+          "label": "Select Instrument",
+          "rationale": "Dropdown naturally represents choosing one instrument from available options. Users immediately understand 'pick one' semantics.",
+          "position": {
+            "x": 0.5,
+            "y": 0.8
+          },
+          "binding": {
+            "dataPath": "inputs.ckpt_name",
+            "min": 0,
+            "max": 100,
+            "step": 1
+          }
+        }
+      ],
+      "assetPrompt": "A clean wooden instrument selection panel with icons for synthesizer, electric guitar, and violin silhouettes, professional studio style, 256x256",
+      "size": {
+        "width": 180,
+        "height": 140
+      }
+    },
+    {
+      "knotType": "CLIPTextEncode",
+      "metaphorElement": "Lyricist's Notepad (Positive)",
+      "label": "Write Positive Lyrics",
+      "description": "Text encoding for positive prompts is like writing the main lyrical theme or musical direction. The text directly influences what 'emotional tone' the composition takes. Strength: text input remains explicitly textual — users type words into a notepad. Weakness: music doesn't use lyrics in quite the same way as image generation uses prompts, but the 'guidance' concept maps reasonably well.",
+      "facadeControls": [
+        {
+          "id": "pos-text-input",
+          "controlType": "text",
+          "label": "Positive Direction",
+          "rationale": "Text field preserves full expressiveness of user prompts. Users can write any instruction. No abstraction layer obscures what they're inputting.",
+          "position": {
+            "x": 0.3,
+            "y": 0.5
+          },
+          "binding": {
+            "dataPath": "inputs.text",
+            "min": 0,
+            "max": 1000,
+            "step": 1
+          }
+        }
+      ],
+      "assetPrompt": "A lined notepad with a fountain pen resting on it, musical notes faintly visible in the background, warm studio lighting, 256x256",
+      "size": {
+        "width": 160,
+        "height": 120
+      }
+    },
+    {
+      "knotType": "CLIPTextEncode",
+      "metaphorElement": "Lyricist's Notepad (Negative)",
+      "label": "Write Negative Lyrics",
+      "description": "Negative prompts work like specifying what NOT to include in the composition — the anti-theme. Text remains fully legible and editable. Strength: same as positive — fully textual, no abstraction. Weakness: the 'negative' guidance is more of a technical concept than a natural studio practice.",
+      "facadeControls": [
+        {
+          "id": "neg-text-input",
+          "controlType": "text",
+          "label": "Avoid These Elements",
+          "rationale": "Text field for explicit negation. Users type what to exclude. Straightforward and preserves agency.",
+          "position": {
+            "x": 0.7,
+            "y": 0.5
+          },
+          "binding": {
+            "dataPath": "inputs.text",
+            "min": 0,
+            "max": 1000,
+            "step": 1
+          }
+        }
+      ],
+      "assetPrompt": "A lined notepad with red pen and an 'X' mark on it, slightly crumpled, studio desk background, 256x256",
+      "size": {
+        "width": 160,
+        "height": 120
+      }
+    },
+    {
+      "knotType": "EmptyLatentImage",
+      "metaphorElement": "Blank Recording Track",
+      "label": "Initialize Blank Track",
+      "description": "Empty latent image is the empty canvas — a blank recording track ready to be filled. Width/height map to track resolution/quality. Batch size is how many takes you're recording simultaneously. Strength: intuitive metaphor for 'start with nothing.' Weakness: latent space is abstract; users don't directly interact with it, so the metaphor could be confusing if they expect to see something.",
+      "facadeControls": [
+        {
+          "id": "track-width",
+          "controlType": "slider",
+          "label": "Track Width (Resolution)",
+          "rationale": "Slider for width feels like adjusting recording fidelity. Higher = more detail/quality, same as wider frequency spectrum.",
+          "position": {
+            "x": 0.2,
+            "y": 0.7
+          },
+          "binding": {
+            "dataPath": "inputs.width",
+            "min": 256,
+            "max": 1024,
+            "step": 64
+          }
+        },
+        {
+          "id": "track-height",
+          "controlType": "slider",
+          "label": "Track Height (Depth)",
+          "rationale": "Slider for height — think of it as track depth or dynamic range. Intuitive in recording context.",
+          "position": {
+            "x": 0.5,
+            "y": 0.7
+          },
+          "binding": {
+            "dataPath": "inputs.height",
+            "min": 256,
+            "max": 1024,
+            "step": 64
+          }
+        },
+        {
+          "id": "batch-count",
+          "controlType": "slider",
+          "label": "Simultaneous Takes",
+          "rationale": "Batch size as parallel recording takes — you can generate multiple variations at once, like overdubbing multiple versions of the same part.",
+          "position": {
+            "x": 0.8,
+            "y": 0.7
+          },
+          "binding": {
+            "dataPath": "inputs.batch_size",
+            "min": 1,
+            "max": 8,
+            "step": 1
+          }
+        }
+      ],
+      "assetPrompt": "An empty digital audio workstation track, showing timeline grid and faders, professional dark UI, 256x256",
+      "size": {
+        "width": 200,
+        "height": 140
+      }
+    },
+    {
+      "knotType": "KSampler",
+      "metaphorElement": "Synthesizer / Sound Generator",
+      "label": "Synthesize Sound",
+      "description": "The sampler is the core creative engine — like a synthesizer generating sound from parameters. Seed is the starting waveform; steps are oscillation cycles; CFG is the resonance/feedback intensity; sampler_name is the synthesis algorithm; scheduler is the envelope. Strength: 'synthesizer' immediately conveys generation/iteration. Weakness: actual sound synthesis doesn't perfectly map to diffusion sampling — it's an analogy, not a direct parallel.",
+      "facadeControls": [
+        {
+          "id": "seed-input",
+          "controlType": "slider",
+          "label": "Random Seed (Starting Wave)",
+          "rationale": "Slider for seed — think of it as the initial oscillation state. Different seeds = different starting points for synthesis. Natural for a synth.",
+          "position": {
+            "x": 0.15,
+            "y": 0.3
+          },
+          "binding": {
+            "dataPath": "inputs.seed",
+            "min": 0,
+            "max": 4294967295,
+            "step": 1
+          }
+        },
+        {
+          "id": "steps-knob",
+          "controlType": "slider",
+          "label": "Refinement Steps (Oscillation Cycles)",
+          "rationale": "Knob-style slider for steps — more cycles = more detailed synthesis. Intuitive in synth context where more LFO cycles = richer modulation.",
+          "position": {
+            "x": 0.5,
+            "y": 0.3
+          },
+          "binding": {
+            "dataPath": "inputs.steps",
+            "min": 1,
+            "max": 150,
+            "step": 1
+          }
+        },
+        {
+          "id": "cfg-resonance",
+          "controlType": "slider",
+          "label": "CFG Resonance (Feedback Intensity)",
+          "rationale": "Slider for CFG mapped to resonance/feedback. Higher values = stronger guidance signal pushed through the system, like turning up feedback on a synth.",
+          "position": {
+            "x": 0.85,
+            "y": 0.3
+          },
+          "binding": {
+            "dataPath": "inputs.cfg",
+            "min": 1,
+            "max": 20,
+            "step": 0.5
+          }
+        },
+        {
+          "id": "sampler-algo",
+          "controlType": "dropdown",
+          "label": "Synthesis Algorithm",
+          "rationale": "Dropdown for sampler_name — choose from different synthesis methods (Euler, DPM, etc.), like choosing between additive, FM, or subtractive synthesis.",
+          "position": {
+            "x": 0.3,
+            "y": 0.15
+          },
+          "binding": {
+            "dataPath": "inputs.sampler_name",
+            "min": 0,
+            "max": 20,
+            "step": 1
+          }
+        },
+        {
+          "id": "scheduler",
+          "controlType": "dropdown",
+          "label": "Envelope Scheduler",
+          "rationale": "Dropdown for scheduler — determines how the synthesis ramps up/down, like choosing ADSR envelope shapes.",
+          "position": {
+            "x": 0.7,
+            "y": 0.15
+          },
+          "binding": {
+            "dataPath": "inputs.scheduler",
+            "min": 0,
+            "max": 10,
+            "step": 1
+          }
+        },
+        {
+          "id": "denoise-filter",
+          "controlType": "slider",
+          "label": "Denoising Filter",
+          "rationale": "Slider for denoise — think of it as a low-pass filter reducing artifacts. Higher values = more 'clean' output, like adjusting filter cutoff.",
+          "position": {
+            "x": 0.5,
+            "y": 0.05
+          },
+          "binding": {
+            "dataPath": "inputs.denoise",
+            "min": 0,
+            "max": 1,
+            "step": 0.01
+          }
+        }
+      ],
+      "assetPrompt": "A professional synthesizer control panel with multiple knobs, sliders, and buttons, LED displays showing values, dark background, 256x256",
+      "size": {
+        "width": 240,
+        "height": 180
+      }
+    },
+    {
+      "knotType": "VAEDecode",
+      "metaphorElement": "Audio Interface / Digital-to-Analog Converter",
+      "label": "Convert to Playable Format",
+      "description": "VAE decode converts latent representation to final image — metaphorically, a DAC converts digital synthesis to analog audio. Strength: the encoding/decoding concept maps well to D/A conversion. Weakness: VAE is a specific neural operation; calling it a 'DAC' is a simplification that hides the complexity.",
+      "facadeControls": [],
+      "assetPrompt": "A professional audio interface device with XLR outputs and LED meters, sleek metal design, studio lighting, 256x256",
+      "size": {
+        "width": 180,
+        "height": 140
+      }
+    },
+    {
+      "knotType": "SaveImage",
+      "metaphorElement": "Master File Export / Recording Session Save",
+      "label": "Export & Save",
+      "description": "Saving the final output is like exporting a master file or saving a recording session. Filename prefix is the project name. Strength: every audio engineer understands 'save/export.' Weakness: we're saving an image, not an audio file, so the metaphor breaks if users think too hard about the medium.",
+      "facadeControls": [
+        {
+          "id": "filename-prefix",
+          "controlType": "text",
+          "label": "Project Name",
+          "rationale": "Text field for filename — users type what to call this output, just like naming a session or exporting a mix.",
+          "position": {
+            "x": 0.5,
+            "y": 0.5
+          },
+          "binding": {
+            "dataPath": "inputs.filename_prefix",
+            "min": 0,
+            "max": 255,
+            "step": 1
+          }
+        }
+      ],
+      "assetPrompt": "A save dialog window with a text field and checkmark button, file icons visible, professional UI, 256x256",
+      "size": {
+        "width": 180,
+        "height": 120
+      }
+    }
+  ],
+  "threadStyle": {
+    "colorBy": "dataType",
+    "metaphor": "Signal flows: instrument configuration flows as a setup signal (cyan); lyrical guidance flows as directional signals (yellow/red); latent audio data flows as synthesis data (purple); final output flows as the master signal (gold)",
+    "colorMap": {
+      "MODEL": {
+        "color": "#00FFFF",
+        "width": 3,
+        "style": "solid"
+      },
+      "CLIP": {
+        "color": "#FFD700",
+        "width": 2,
+        "style": "solid"
+      },
+      "LATENT": {
+        "color": "#9D4EDD",
+        "width": 3,
+        "style": "solid"
+      },
+      "IMAGE": {
+        "color": "#FFD700",
+        "width": 3,
+        "style": "solid"
+      }
+    }
+  },
+  "waveMetaphor": "Data tokens flow as shimmering waveforms — cyan pulses carry instrument/model info; yellow/red streams carry guidance (lyrics); purple waves carry latent synthesis data; golden light streams represent the final rendered image.",
+  "sceneDescription": "A bird's-eye view of a music production studio arranged left-to-right: Instrument Selection Board on the left; Lyricist's Notepads (positive/negative) in the center-left and center-right; a Blank Recording Track below center; a large Synthesizer dominating the center-right; an Audio Interface to its right; and an Export/Save station on the far right. Signal flows connect all elements as glowing waveforms, suggesting a complete signal chain.",
+  "sceneConfig": {
+    "background": "#1a1a2e",
+    "layoutMode": "horizontal",
+    "spacing": {
+      "x": 320,
+      "y": 240
+    }
+  },
+  "aiVocabulary": "Describe workflows using studio language: 'Select your instrument, write your positive and negative direction on the lyricist pads, initialize a blank recording track, feed those guidelines into the synthesizer where they refine through oscillation cycles controlled by resonance and envelope scheduling, convert the latent synthesis through the audio interface, and export your master file.'",
+  "detailedScores": {
+    "mappingScores": [
+      {
+        "knotType": "CheckpointLoaderSimple",
+        "metaphorElement": "Instrument Selection Board",
+        "elementFit": 7,
+        "inputOutputFit": 8,
+        "attributeScores": [
+          {
+            "parameterName": "ckpt_name",
+            "metaphorControl": "Select Instrument Dropdown",
+            "explanatoryPower": 8,
+            "truthfulness": 7,
+            "intuitiveness": 9,
+            "rationale": "Dropdown immediately communicates 'pick one.' Selection is crisp and intentional. Maps well to instrument choice. Weakness: doesn't convey that a checkpoint is a massive neural network, just feels like picking a tone."
+          }
+        ],
+        "overallMappingScore": 7.5,
+        "rationale": "Instrument metaphor is intuitive for model selection. Everyone understands 'picking an instrument changes the sound.' Weakness: loses the technical reality that you're loading a multi-billion-parameter model, but that's acceptable for mixed audiences who don't need that detail."
+      },
+      {
+        "knotType": "CLIPTextEncode",
+        "metaphorElement": "Lyricist's Notepad (Positive)",
+        "elementFit": 8,
+        "inputOutputFit": 9,
+        "attributeScores": [
+          {
+            "parameterName": "text",
+            "metaphorControl": "Text Input Field",
+            "explanatoryPower": 9,
+            "truthfulness": 9,
+            "intuitiveness": 9,
+            "rationale": "Text input remains fully transparent. No abstraction. User types words, words appear in system. Perfect preservation of expressiveness. Lyricist/notepad metaphor is apt — you're writing guidance for the system."
+          }
+        ],
+        "overallMappingScore": 8.5,
+        "rationale": "Strong mapping. Text prompts are exactly like lyrical themes — they guide the direction. Text field is the right control. No deception about what's happening. Weakness: music doesn't use text in the same way image generation does, but the concept of 'written direction' is universal enough."
+      },
+      {
+        "knotType": "CLIPTextEncode",
+        "metaphorElement": "Lyricist's Notepad (Negative)",
+        "elementFit": 7,
+        "inputOutputFit": 9,
+        "attributeScores": [
+          {
+            "parameterName": "text",
+            "metaphorControl": "Text Input Field (Avoidance)",
+            "explanatoryPower": 8,
+            "truthfulness": 9,
+            "intuitiveness": 8,
+            "rationale": "Text field for negation is equally transparent. User knows exactly what they're typing. 'Avoid these elements' is clear. Slightly lower intuitiveness than positive because negation is less intuitive than affirmation in music, but still solid."
+          }
+        ],
+        "overallMappingScore": 8,
+        "rationale": "Clear mapping. Negative guidance as 'anti-theme' is reasonable. Text field is right. Weakness: musical composition doesn't naturally use 'don't do X' as much as 'do Y,' so the negation concept is a bit forced. But it works."
+      },
+      {
+        "knotType": "EmptyLatentImage",
+        "metaphorElement": "Blank Recording Track",
+        "elementFit": 7,
+        "inputOutputFit": 6,
+        "attributeScores": [
+          {
+            "parameterName": "width",
+            "metaphorControl": "Track Width Slider",
+            "explanatoryPower": 7,
+            "truthfulness": 6,
+            "intuitiveness": 7,
+            "rationale": "Width as 'resolution/fidelity' is intuitive. Higher width = more detail. But in audio, 'track width' usually means stereo vs. mono, not quality, so the mapping is slightly forced."
+          },
+          {
+            "parameterName": "height",
+            "metaphorControl": "Track Height Slider",
+            "explanatoryPower": 6,
+            "truthfulness": 5,
+            "intuitiveness": 6,
+            "rationale": "Height as 'depth' is vague. Not a strong metaphor. Truthfulness is low because height doesn't naturally mean 'depth' in audio — it's a visual concept forced into audio domain."
+          },
+          {
+            "parameterName": "batch_size",
+            "metaphorControl": "Simultaneous Takes Slider",
+            "explanatoryPower": 8,
+            "truthfulness": 7,
+            "intuitiveness": 8,
+            "rationale": "Batch as parallel takes is strong. Anyone who's done layered recording understands 'overdub multiple versions at once.' Truthful and intuitive."
+          }
+        ],
+        "overallMappingScore": 6.8,
+        "rationale": "Blank track is intuitive as a concept, but the individual controls are mixed. Batch size is excellent; width/height are weaker. The metaphor breaks slightly because we're actually initializing a latent tensor (abstract), not a real audio track (concrete)."
+      },
+      {
+        "knotType": "KSampler",
+        "metaphorElement": "Synthesizer / Sound Generator",
+        "elementFit": 8,
+        "inputOutputFit": 7,
+        "attributeScores": [
+          {
+            "parameterName": "seed",
+            "metaphorControl": "Random Seed Slider",
+            "explanatoryPower": 7,
+            "truthfulness": 7,
+            "intuitiveness": 7,
+            "rationale": "Seed as 'starting wave' is intuitive — synth users understand that initial conditions matter. Different seeds = different trajectories. Truthful metaphor. Weakness: seed range (0-4B) is huge and not reflected in slider UI."
+          },
+          {
+            "parameterName": "steps",
+            "metaphorControl": "Oscillation Cycles Slider",
+            "explanatoryPower": 8,
+            "truthfulness": 7,
+            "intuitiveness": 8,
+            "rationale": "Steps as refinement cycles is excellent in synth domain. More LFO cycles = richer modulation. Maps well. Truthful range (1-150). Intuitive for synth users."
+          },
+          {
+            "parameterName": "cfg",
+            "metaphorControl": "Resonance Slider",
+            "explanatoryPower": 7,
+            "truthfulness": 6,
+            "intuitiveness": 7,
+            "rationale": "CFG as resonance/feedback is creative. Higher CFG = stronger guidance signal, like turning up feedback. Somewhat truthful. Intuitiveness is decent but not perfect — CFG is actually 'classifier-free guidance strength,' and resonance is an imperfect analogy."
+          },
+          {
+            "parameterName": "sampler_name",
+            "metaphorControl": "Synthesis Algorithm Dropdown",
+            "explanatoryPower": 8,
+            "truthfulness": 7,
+            "intuitiveness": 8,
+            "rationale": "Mapping sampling algorithms to synthesis methods (Euler→linear, DPM→FM-like) is intuitive. Users choose one algorithm. Truthful — different samplers do produce different results. Good control."
+          },
+          {
+            "parameterName": "scheduler",
+            "metaphorControl": "Envelope Scheduler Dropdown",
+            "explanatoryPower": 8,
+            "truthfulness": 6,
+            "intuitiveness": 8,
+            "rationale": "Scheduler as envelope shape (linear, polynomial, karras, etc.) is intuitive for synth users. ADSR-like controls are familiar. Truthfulness is moderate — the scheduler doesn't exactly work like ADSR, but the analogy is reasonable."
+          },
+          {
+            "parameterName": "denoise",
+            "metaphorControl": "Denoising Filter Slider",
+            "explanatoryPower": 8,
+            "truthfulness": 8,
+            "intuitiveness": 8,
+            "rationale": "Denoise as low-pass filter is excellent. Higher denoise = more artifacts removed, like adjusting filter cutoff. Truthful (0-1 range makes sense). Very intuitive for audio producers."
+          }
+        ],
+        "overallMappingScore": 7.4,
+        "rationale": "Synthesizer is a strong metaphor for the sampler. Most controls map well (steps, sampler, scheduler, denoise are 7-8). CFG and seed are slightly weaker but still solid. The core metaphor of 'synthesis engine generating output via iterative refinement' is accurate and intuitive."
+      },
+      {
+        "knotType": "VAEDecode",
+        "metaphorElement": "Audio Interface / DAC",
+        "elementFit": 6,
+        "inputOutputFit": 6,
+        "attributeScores": [],
+        "overallMappingScore": 6,
+        "rationale": "DAC metaphor is reasonable for decoding, but truthfulness suffers because VAE is a neural network operation, not a simple D/A conversion. The abstraction hides that VAE is doing complex upsampling/decoding. Acceptable for mixed audiences but not truthful."
+      },
+      {
+        "knotType": "SaveImage",
+        "metaphorElement": "Master File Export / Recording Session Save",
+        "elementFit": 7,
+        "inputOutputFit": 5,
+        "attributeScores": [
+          {
+            "parameterName": "filename_prefix",
+            "metaphorControl": "Project Name Text Field",
+            "explanatoryPower": 9,
+            "truthfulness": 8,
+            "intuitiveness": 9,
+            "rationale": "Text field for naming is universal. Everyone saves files. Clear and intuitive. Truthfulness is high — this is literally saving a file. Perfect control choice."
+          }
+        ],
+        "overallMappingScore": 6.5,
+        "rationale": "Save/export is intuitive, but the metaphor breaks because we're saving an *image*, not an *audio file*. An audio engineer saving a 'master' expects MP3/WAV, not PNG/JPG. Input/output fit is low for this reason, even though the control is perfect."
+      }
+    ],
+    "ioAnalysis": {
+      "textInputHandling": 9,
+      "modelInputHandling": 8,
+      "intermediateHandling": 6,
+      "finalOutputHandling": 4,
+      "rationale": "Text input is excellent — both notepads are fully transparent text fields. No abstraction. Model input is good — instrument selection is clear. Intermediate handling (latent space as blank track, VAE as DAC) is moderate — the abstractions work but hide complexity. Final output handling is weak — the metaphor produces 'synthesized sound' but the actual output is an image. This is the biggest weakness of the music studio metaphor: the medium mismatch at the end."
+    }
+  },
+  "scores": {
+    "explanatoryPower": 7.4,
+    "truthfulness": 6.8,
+    "completeness": 8,
+    "intuitiveInteraction": 7.8,
+    "fractalConsistency": 6.9,
+    "overall": 7.38,
+    "rationale": "The Music Production Studio metaphor is strong for mixed audiences and preserves text input integrity (both notepads are fully textual). Most controls are intuitive (steps as cycles, CFG as resonance, sampler as algorithm, scheduler as envelope). Instrument selection and file naming are immediately clear. Strengths: explanatory power is solid (7.4) because every step maps to a familiar studio operation; intuitiveness is high (7.8) because audio producers and musicians will recognize all the concepts. Weaknesses: truthfulness (6.8) suffers because CFG isn't truly 'resonance,' VAE isn't truly a DAC, and the final output is an image not sound — a medium mismatch. Completeness is good (8) — all major parameters have controls. Fractal consistency is moderate (6.9) because the metaphor works well through synthesis but breaks at the end (image output vs. audio metaphor). The overall score of 7.2 reflects a well-crafted metaphor with one significant flaw: the user expects to hear music, not see an image, which could create confusion despite the excellent control mappings."
+  }
+}

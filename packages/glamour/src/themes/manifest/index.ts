@@ -258,6 +258,9 @@ export class ManifestTheme implements GlamourTheme {
       // Check explicit thread data type
       if (thread.data?.type && typeof thread.data.type === 'string') {
         dataType = thread.data.type
+      } else if (thread.label && threadStyle.colorMap[thread.label]) {
+        // Use thread label if it matches a colorMap key (e.g. "CLIP", "MODEL", "LATENT")
+        dataType = thread.label
       } else {
         // Infer from source knot
         dataType = this.inferDataType(sourceKnot)

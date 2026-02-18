@@ -20,7 +20,7 @@ import { useRef, useEffect, useState, useCallback, useMemo } from 'react'
 import { Application, Container, Graphics, Text, TextStyle, Assets, Sprite, Texture, Rectangle, type FederatedPointerEvent } from 'pixi.js'
 import type { WeaveRendererProps, GlamourElement, GlamourConnection, GlamourVisual } from '#weaver/glamour'
 import type { KnotId } from '#weaver/core'
-import { LoomTheme, ManifestTheme, buildKnotIdMap } from '#weaver/glamour'
+import { LoomTheme, ManifestTheme, buildKnotIdMap, GlamourAssetResolver } from '#weaver/glamour'
 import type { EnchantContext, MetaphorManifest } from '#weaver/glamour'
 
 // ─── Types ──────────────────────────────────────────────────────
@@ -117,14 +117,35 @@ export function GlamourRenderer({
   const [facadeData, setFacadeData] = useState<Map<KnotId, { element: GlamourElement; worldX: number; worldY: number }>>(new Map())
   const facadeContainerRef = useRef<HTMLDivElement>(null)
 
+  // Hydrate asset resolver with already-generated assets on mount/manifest change
+  const [assetResolver, setAssetResolver] = useState<GlamourAssetResolver | null>(null)
+
+  useEffect(() => {
+    if (!activeManifest) {
+      setAssetResolver(null)
+      return
+    }
+    // Fetch server's asset registry so resolveVisual() can find cached PNGs
+    fetch('/api/ai/glamour/assets')
+      .then(r => r.json())
+      .then((assets: Record<string, { type: string; url: string; hash: string }>) => {
+        const resolver = new GlamourAssetResolver()
+        for (const [key, asset] of Object.entries(assets)) {
+          resolver.register(key, asset)
+        }
+        setAssetResolver(resolver)
+      })
+      .catch(() => {}) // Silent fail — will use fallbacks
+  }, [activeManifest])
+
   // Theme instance — dynamic: ManifestTheme if activeManifest, else LoomTheme
   const theme = useMemo(() => {
     if (activeManifest) {
       const knotIdMap = buildKnotIdMap(weave)
-      return new ManifestTheme(activeManifest, knotIdMap)
+      return new ManifestTheme(activeManifest, knotIdMap, assetResolver ?? undefined)
     }
     return LoomTheme
-  }, [activeManifest, weave])
+  }, [activeManifest, weave, assetResolver])
 
   // Build enchant context
   const enchantContext: EnchantContext = useMemo(() => ({
@@ -337,10 +358,64 @@ export function GlamourRenderer({
         const ks = existingKnots.get(knotId)!
         ks.container.x = element.position.x
         ks.container.y = element.position.y
+        const prevVisualType = ks.element.visual.type
         ks.element = element
+
         // Update label text
         const label = ks.container.getChildByLabel('label') as Text | null
         if (label) label.text = element.label
+
+        // If visual type changed (e.g. 'generated' → 'sprite' after hydration),
+        // swap out the visual content
+        if (element.visual.type !== prevVisualType) {
+          // Remove all existing visual children
+          const VISUAL_LABELS = new Set(['fallback-visual', 'sprite-asset', 'svg-sprite'])
+          for (let i = ks.container.children.length - 1; i >= 0; i--) {
+            const child = ks.container.children[i]
+            if (VISUAL_LABELS.has(child.label)) {
+              ks.container.removeChild(child)
+              child.destroy()
+            }
+          }
+
+          // Render the new visual
+          if (element.visual.type === 'sprite') {
+            const spriteUrl = element.visual.url
+            const capturedSize = element.size
+            knotPromises.push(
+              loadSpriteTexture(spriteUrl).then(texture => {
+                if (texture === Texture.EMPTY) return
+                const sprite = new Sprite(texture)
+                sprite.label = 'sprite-asset'
+                sprite.anchor.set(0.5, 0.5)
+                sprite.width = capturedSize.width
+                sprite.height = capturedSize.height
+                ks.container.addChildAt(sprite, 1)
+              })
+            )
+            // Clear pending label if it was set
+            if (ks.container.label.endsWith(':pending')) {
+              ks.container.label = `knot-${knotId}`
+            }
+          } else if (element.visual.type === 'svg') {
+            const svgPath = element.visual.path
+            const capturedSize = element.size
+            knotPromises.push(
+              loadSvgTexture(svgPath).then(texture => {
+                if (texture === Texture.EMPTY) return
+                const sprite = new Sprite(texture)
+                sprite.label = 'svg-sprite'
+                sprite.anchor.set(0.5, 0.5)
+                sprite.width = capturedSize.width
+                sprite.height = capturedSize.height
+                ks.container.addChildAt(sprite, 1)
+              })
+            )
+          } else if (element.visual.type === 'generated') {
+            renderFallbackVisual(ks.container, element.visual.fallback, element.size)
+            ks.container.label = `knot-${knotId}:pending`
+          }
+        }
       } else {
         // Create new knot sprite
         const knotContainer = new Container()
@@ -878,10 +953,11 @@ function hotSwapKnotAsset(
   loadSpriteTexture(url).then(texture => {
     if (texture === Texture.EMPTY) return
 
-    // Remove old fallback/sprite child (label = 'fallback-visual' or 'sprite-asset')
+    // Remove ALL visual children (any sprite/graphic that isn't the bg or label)
+    const VISUAL_LABELS = new Set(['fallback-visual', 'sprite-asset', 'svg-sprite'])
     for (let i = ks.container.children.length - 1; i >= 0; i--) {
       const child = ks.container.children[i]
-      if (child.label === 'fallback-visual' || child.label === 'sprite-asset') {
+      if (VISUAL_LABELS.has(child.label)) {
         ks.container.removeChild(child)
         child.destroy()
       }

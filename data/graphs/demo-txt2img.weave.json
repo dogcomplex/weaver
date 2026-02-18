@@ -28,7 +28,7 @@
       "data": {
         "comfyui_class_type": "CLIPTextEncode",
         "inputs": {
-          "text": "a beautiful mountain landscape, night time, aurora borealis, photorealistic, 8k"
+          "text": "a reel of film stock, photorealistic icon, 8k"
         }
       }
     },
@@ -69,8 +69,8 @@
       "label": "KSampler",
       "type": "KSampler",
       "position": {
-        "x": 600,
-        "y": 60
+        "x": 594.0191846522781,
+        "y": 94.38968824940048
       },
       "data": {
         "comfyui_class_type": "KSampler",

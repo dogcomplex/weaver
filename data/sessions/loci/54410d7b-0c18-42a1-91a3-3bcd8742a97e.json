@@ -1,0 +1,2234 @@
+{
+  "id": "54410d7b-0c18-42a1-91a3-3bcd8742a97e",
+  "weaveId": "demo-txt2img",
+  "createdAt": "2026-02-18T02:54:17.808Z",
+  "updatedAt": "2026-02-18T02:54:17.822Z",
+  "entries": [
+    {
+      "type": "propose",
+      "input": {
+        "schema": {
+          "knots": [
+            {
+              "id": "1",
+              "type": "CheckpointLoaderSimple",
+              "label": "Load Checkpoint",
+              "dataKeys": [
+                "comfyui_class_type",
+                "inputs"
+              ],
+              "parameterNames": [
+                "ckpt_name"
+              ]
+            },
+            {
+              "id": "2",
+              "type": "CLIPTextEncode",
+              "label": "CLIP Text (Positive)",
+              "dataKeys": [
+                "comfyui_class_type",
+                "inputs"
+              ],
+              "parameterNames": [
+                "text"
+              ]
+            },
+            {
+              "id": "3",
+              "type": "CLIPTextEncode",
+              "label": "CLIP Text (Negative)",
+              "dataKeys": [
+                "comfyui_class_type",
+                "inputs"
+              ],
+              "parameterNames": [
+                "text"
+              ]
+            },
+            {
+              "id": "4",
+              "type": "EmptyLatentImage",
+              "label": "Empty Latent Image",
+              "dataKeys": [
+                "comfyui_class_type",
+                "inputs"
+              ],
+              "parameterNames": [
+                "width",
+                "height",
+                "batch_size"
+              ]
+            },
+            {
+              "id": "5",
+              "type": "KSampler",
+              "label": "KSampler",
+              "dataKeys": [
+                "comfyui_class_type",
+                "inputs"
+              ],
+              "parameterNames": [
+                "seed",
+                "steps",
+                "cfg",
+                "sampler_name",
+                "scheduler",
+                "denoise"
+              ]
+            },
+            {
+              "id": "6",
+              "type": "VAEDecode",
+              "label": "VAE Decode",
+              "dataKeys": [
+                "comfyui_class_type",
+                "inputs"
+              ],
+              "parameterNames": []
+            },
+            {
+              "id": "7",
+              "type": "SaveImage",
+              "label": "Save Image",
+              "dataKeys": [
+                "comfyui_class_type",
+                "inputs"
+              ],
+              "parameterNames": [
+                "filename_prefix"
+              ]
+            }
+          ],
+          "threads": [
+            {
+              "source": "1",
+              "target": "2",
+              "label": "CLIP"
+            },
+            {
+              "source": "1",
+              "target": "3",
+              "label": "CLIP"
+            },
+            {
+              "source": "1",
+              "target": "5",
+              "label": "MODEL"
+            },
+            {
+              "source": "2",
+              "target": "5",
+              "label": "CONDITIONING"
+            },
+            {
+              "source": "3",
+              "target": "5",
+              "label": "CONDITIONING"
+            },
+            {
+              "source": "4",
+              "target": "5",
+              "label": "LATENT"
+            },
+            {
+              "source": "5",
+              "target": "6",
+              "label": "LATENT"
+            },
+            {
+              "source": "1",
+              "target": "6",
+              "label": "VAE"
+            },
+            {
+              "source": "6",
+              "target": "7",
+              "label": "IMAGE"
+            }
+          ],
+          "purpose": "generates images from text prompts using AI diffusion models",
+          "context": {
+            "audience": "mixed"
+          }
+        },
+        "count": 5
+      },
+      "output": [
+        {
+          "id": "darkroom-workflow",
+          "name": "Darkroom Photography",
+          "mappings": [
+            {
+              "knotType": "CheckpointLoaderSimple",
+              "metaphorElement": "Camera Body & Lens Selection",
+              "label": "Camera Selection",
+              "description": "The checkpoint is the core tool that shapes all output, much like choosing a specific camera body and lens determines the optical characteristics of every photo. The model file is essentially a pre-calibrated optical system. Strength: models ARE tools that determine output character. Weakness: actual checkpoint loading is instantaneous, not a physical selection process.",
+              "facadeControls": [
+                {
+                  "id": "ckpt_name",
+                  "controlType": "dropdown",
+                  "label": "Camera Model",
+                  "rationale": "Dropdown presents checkpoint options as discrete camera choices—users browse available cameras (models) and select one, matching how photographers choose equipment",
+                  "position": {
+                    "x": 0.3,
+                    "y": 0.2
+                  },
+                  "binding": {
+                    "dataPath": "inputs.ckpt_name",
+                    "options": "checkpoint_names"
+                  }
+                }
+              ],
+              "assetPrompt": "Professional camera on a tripod with interchangeable lenses displayed, viewed from above, clean icon style, metallic gray and black",
+              "size": {
+                "width": 180,
+                "height": 140
+              }
+            },
+            {
+              "knotType": "CLIPTextEncode",
+              "metaphorElement": "Shot Direction / Composition Notes",
+              "label": "Positive Composition (What You Want)",
+              "description": "Text prompts describe what the photographer wants to capture—composition, lighting, mood. This is explicitly textual input, which MUST remain visible as text because users write detailed descriptions. The metaphor treats the positive prompt as a director's notes for what to photograph. Strength: text input stays textual and editable. Weakness: composition notes don't directly generate images; they inform the imaging process, creating indirect mapping.",
+              "facadeControls": [
+                {
+                  "id": "text_positive",
+                  "controlType": "text",
+                  "label": "Shot Direction",
+                  "rationale": "Large text area where users write compositional direction—'golden hour lighting, portrait, soft focus background'—directly mirroring how photographers or directors describe shots they want",
+                  "position": {
+                    "x": 0.2,
+                    "y": 0.4
+                  },
+                  "binding": {
+                    "dataPath": "inputs.text",
+                    "maxLength": 1000
+                  }
+                }
+              ],
+              "assetPrompt": "Director's clipboard with handwritten notes and sketches, soft pencil marks, artistic style, warm paper tone",
+              "size": {
+                "width": 200,
+                "height": 160
+              }
+            },
+            {
+              "knotType": "CLIPTextEncode",
+              "metaphorElement": "Exclusions / What to Avoid",
+              "label": "Negative Composition (What to Avoid)",
+              "description": "Negative prompts specify unwanted elements—artifacts, bad lighting, unwanted objects. In photography metaphor, these are notes about what NOT to include in the frame or what to avoid in post-processing. Strength: explicit text control remains textual. Weakness: photographers don't typically use formal 'exclusion lists'—they think in terms of what to include.",
+              "facadeControls": [
+                {
+                  "id": "text_negative",
+                  "controlType": "text",
+                  "label": "Unwanted Elements",
+                  "rationale": "Text area for rejections—'blurry, watermark, low quality'—treating negative prompts as a checklist of things the photographer wants to filter out during the shoot",
+                  "position": {
+                    "x": 0.8,
+                    "y": 0.4
+                  },
+                  "binding": {
+                    "dataPath": "inputs.text",
+                    "maxLength": 1000
+                  }
+                }
+              ],
+              "assetPrompt": "Red X marks on photo reference sheet, rejection symbols, artistic crossed-out sketches on white paper",
+              "size": {
+                "width": 200,
+                "height": 160
+              }
+            },
+            {
+              "knotType": "EmptyLatentImage",
+              "metaphorElement": "Film Stock / Canvas Preparation",
+              "label": "Film Format Selection",
+              "description": "Empty latent initializes the generation space with dimensions and batch size. In the darkroom metaphor, this is selecting film stock (width/height = film dimensions, batch_size = number of exposures on a roll). Strength: photographers DO select film format before shooting. Weakness: 'latent space' is abstract—the metaphor treats it as the blank film or canvas.",
+              "facadeControls": [
+                {
+                  "id": "width",
+                  "controlType": "dropdown",
+                  "label": "Film Width (pixels)",
+                  "rationale": "Dropdown for common aspect ratios (35mm, medium format, square, panoramic)—photographers think in film formats, not pixel counts",
+                  "position": {
+                    "x": 0.5,
+                    "y": 0.15
+                  },
+                  "binding": {
+                    "dataPath": "inputs.width",
+                    "options": [
+                      512,
+                      576,
+                      640,
+                      768,
+                      1024
+                    ]
+                  }
+                },
+                {
+                  "id": "height",
+                  "controlType": "dropdown",
+                  "label": "Film Height (pixels)",
+                  "rationale": "Dropdown paired with width to set aspect ratio—users select standard formats rather than entering raw pixel dimensions",
+                  "position": {
+                    "x": 0.5,
+                    "y": 0.25
+                  },
+                  "binding": {
+                    "dataPath": "inputs.height",
+                    "options": [
+                      512,
+                      576,
+                      640,
+                      768,
+                      1024
+                    ]
+                  }
+                },
+                {
+                  "id": "batch_size",
+                  "controlType": "slider",
+                  "label": "Exposures Per Roll",
+                  "rationale": "Slider from 1-8 representing how many frames to capture; photographers think of film rolls with multiple exposures, matching batch_size semantics",
+                  "position": {
+                    "x": 0.5,
+                    "y": 0.35
+                  },
+                  "binding": {
+                    "dataPath": "inputs.batch_size",
+                    "min": 1,
+                    "max": 8,
+                    "step": 1
+                  }
+                }
+              ],
+              "assetPrompt": "Stack of film rolls and photography formats—35mm canister, medium format frame, Polaroid, arranged neatly, photography equipment aesthetic",
+              "size": {
+                "width": 200,
+                "height": 160
+              }
+            },
+            {
+              "knotType": "KSampler",
+              "metaphorElement": "Exposure Development / Shutter & Processing",
+              "label": "Exposure & Development",
+              "description": "KSampler is the core generation engine that iteratively refines output. In darkroom metaphor, this is the controlled exposure and chemical development of film—light hits film, chemicals react progressively, and detail emerges. steps = duration of chemical bath, cfg = how much you 'push' development (stronger chemical = more contrast/detail), seed = initial light exposure conditions. Strength: excellent metaphorical fit—development IS iterative refinement over time. Weakness: sampler_name and scheduler_name are abstract (developers might not know photography equivalents).",
+              "facadeControls": [
+                {
+                  "id": "seed",
+                  "controlType": "slider",
+                  "label": "Exposure Index (Light Exposure)",
+                  "rationale": "Seed controls initial randomness; in photography, exposure index (ISO equivalent, light amount) determines initial image characteristics—different seeds = different initial light conditions",
+                  "position": {
+                    "x": 0.5,
+                    "y": 0.55
+                  },
+                  "binding": {
+                    "dataPath": "inputs.seed",
+                    "min": 0,
+                    "max": 4294967295,
+                    "step": 1
+                  }
+                },
+                {
+                  "id": "steps",
+                  "controlType": "slider",
+                  "label": "Development Time (Iterations)",
+                  "rationale": "Steps = number of refinement iterations; development time in darkroom determines image clarity—more time = more detail emerges. Slider from 20-150 steps maps intuitively to 'how long you soak the film'",
+                  "position": {
+                    "x": 0.5,
+                    "y": 0.65
+                  },
+                  "binding": {
+                    "dataPath": "inputs.steps",
+                    "min": 20,
+                    "max": 150,
+                    "step": 1
+                  }
+                },
+                {
+                  "id": "cfg",
+                  "controlType": "slider",
+                  "label": "Development Strength (Guidance Scale)",
+                  "rationale": "CFG = how strongly prompts influence output; in darkroom, stronger chemicals = more pronounced development of details. Slider represents how 'aggressive' the chemical bath is—higher values push development further toward the prompt intent",
+                  "position": {
+                    "x": 0.5,
+                    "y": 0.75
+                  },
+                  "binding": {
+                    "dataPath": "inputs.cfg",
+                    "min": 1,
+                    "max": 20,
+                    "step": 0.5
+                  }
+                },
+                {
+                  "id": "sampler_name",
+                  "controlType": "dropdown",
+                  "label": "Development Method",
+                  "rationale": "Different sampling algorithms; in darkroom metaphor, different chemical formulations (D-76, HC-110, etc.) produce different tonal curves and contrast—users select a 'recipe'",
+                  "position": {
+                    "x": 0.3,
+                    "y": 0.85
+                  },
+                  "binding": {
+                    "dataPath": "inputs.sampler_name",
+                    "options": [
+                      "euler",
+                      "heun",
+                      "dpmpp_2m",
+                      "dpmpp_3m_sde"
+                    ]
+                  }
+                },
+                {
+                  "id": "scheduler",
+                  "controlType": "dropdown",
+                  "label": "Temperature Schedule (Noise Decay)",
+                  "rationale": "Scheduler controls refinement curve; in darkroom, temperature schedule could represent cooling bath—how the chemical activity decreases over time affects final contrast",
+                  "position": {
+                    "x": 0.7,
+                    "y": 0.85
+                  },
+                  "binding": {
+                    "dataPath": "inputs.scheduler",
+                    "options": [
+                      "normal",
+                      "karras",
+                      "exponential",
+                      "simple"
+                    ]
+                  }
+                }
+              ],
+              "assetPrompt": "Darkroom chemical tray with developing film strips being immersed, warm red safelight glowing overhead, hands using tongs, chemistry bottles on shelf, monochrome atmospheric",
+              "size": {
+                "width": 240,
+                "height": 200
+              }
+            },
+            {
+              "knotType": "VAEDecode",
+              "metaphorElement": "Enlargement / Print From Negative",
+              "label": "Enlargement Process",
+              "description": "VAE decode translates latent (compressed, abstract representation) into a full image. In photography, the enlarger projects a 35mm negative onto photographic paper, expanding it to viewable size. The latent 'negative' (compressed info) becomes a full 'print' (image). Strength: excellent metaphorical fit—enlargement IS taking compressed info and expanding to full resolution. Weakness: the VAE model itself is hidden; users don't select it, they just see the output expand.",
+              "facadeControls": [],
+              "assetPrompt": "Photographic enlarger with lens and negative holder, light beam projecting downward onto white easel, darkroom setting with red safelight, detailed apparatus",
+              "size": {
+                "width": 200,
+                "height": 180
+              }
+            },
+            {
+              "knotType": "SaveImage",
+              "metaphorElement": "Print Finishing & Filing",
+              "label": "Photograph Filing & Export",
+              "description": "Save image stores the final output with a filename. In darkroom metaphor, this is the final print being dried, filed, and stored in the photographer's portfolio. filename_prefix is how the photographer organizes and names their work. Strength: intuitive—photographers DO file and name their prints. Weakness: actual export is just file I/O, not a physical finishing process.",
+              "facadeControls": [
+                {
+                  "id": "filename_prefix",
+                  "controlType": "text",
+                  "label": "Print Archive Name",
+                  "rationale": "Text input for filename—photographers name their prints with session dates or subjects ('Portrait_2024_01', 'Landscape_Golden_Hour')—text entry mirrors actual file naming",
+                  "position": {
+                    "x": 0.5,
+                    "y": 0.95
+                  },
+                  "binding": {
+                    "dataPath": "inputs.filename_prefix",
+                    "maxLength": 64
+                  }
+                }
+              ],
+              "assetPrompt": "Prints hanging on clothesline with clips in darkroom, archival boxes below, filing cabinet, labels being written, warm amber light",
+              "size": {
+                "width": 200,
+                "height": 160
+              }
+            }
+          ],
+          "threadStyle": {
+            "colorBy": "dataType",
+            "metaphor": "Information flows like light, chemicals, and developed film through the darkroom process—models flow as equipment selections, text prompts as direction cards, images as physical prints",
+            "colorMap": {
+              "MODEL": {
+                "color": "#8B4513",
+                "width": 4,
+                "style": "solid",
+                "label": "Camera/Equipment Selection"
+              },
+              "CLIP": {
+                "color": "#FFD700",
+                "width": 2,
+                "style": "dashed",
+                "label": "Direction/Guidance"
+              },
+              "IMAGE": {
+                "color": "#E8E8E8",
+                "width": 3,
+                "style": "solid",
+                "label": "Developed Print"
+              },
+              "LATENT": {
+                "color": "#4A4A4A",
+                "width": 2,
+                "style": "dotted",
+                "label": "Unexposed Negative"
+              }
+            }
+          },
+          "waveMetaphor": "Data tokens appear as small photographs traveling along threads—model tokens are labeled 'Camera Body', text tokens are tiny direction cards with text visible, latent tokens are 35mm negative strips, final image tokens are full color prints emerging from the enlarger",
+          "sceneDescription": "A traditional darkroom viewed from above: on the left, camera selection station with lens cases. Center-left, two director's clipboards (positive and negative prompts) with handwritten notes. Center, film stock selector. Center-right, a large darkroom tray representing the sampler/development chamber with red safelight above. Right side, an enlarger projecting downward. Far right, print drying rack and filing cabinet. Red safelight casts warm glow across the space. Threads connect stations like light paths and chemical flows.",
+          "sceneConfig": {
+            "background": "#2A1F1F",
+            "layoutMode": "horizontal",
+            "spacing": {
+              "x": 300,
+              "y": 200
+            }
+          },
+          "aiVocabulary": "In the Darkroom workflow, we START by selecting our CAMERA (checkpoint model), which determines the optical character of our work. We write our SHOT DIRECTION (positive prompt) describing what we want to capture—lighting, mood, composition. We note what to AVOID (negative prompt). We select our FILM FORMAT—dimensions and batch size determine how many exposures we'll take. Then we move to the DEVELOPMENT CHAMBER, where we EXPOSE the film to light (seed), let it DEVELOP over time (steps), and control how AGGRESSIVELY we push the development (cfg scale). We choose our DEVELOPMENT RECIPE (sampler) and TEMPERATURE SCHEDULE (scheduler). The ENLARGER projects our latent negative into a full-size print. Finally, we DRY and FILE our prints with a NAME. The entire process is iterative refinement—from abstract direction to tangible image.",
+          "detailedScores": {
+            "mappingScores": [
+              {
+                "knotType": "CheckpointLoaderSimple",
+                "metaphorElement": "Camera Body & Lens Selection",
+                "elementFit": 8,
+                "attributeScores": [
+                  {
+                    "parameterName": "ckpt_name",
+                    "metaphorControl": "Camera Model Dropdown",
+                    "explanatoryPower": 9,
+                    "truthfulness": 8,
+                    "intuitiveness": 9,
+                    "rationale": "Photographers absolutely choose cameras; dropdown presentation mirrors equipment selection. Users understand 'pick a camera body' instantly."
+                  }
+                ],
+                "inputOutputFit": 8,
+                "overallMappingScore": 8,
+                "rationale": "Camera selection is a perfect match for checkpoint loading—both are selecting a tool that shapes all downstream output. The model's character becomes the camera's optical character."
+              },
+              {
+                "knotType": "CLIPTextEncode",
+                "metaphorElement": "Shot Direction / Composition Notes",
+                "elementFit": 8,
+                "attributeScores": [
+                  {
+                    "parameterName": "text",
+                    "metaphorControl": "Text Input - Shot Direction",
+                    "explanatoryPower": 9,
+                    "truthfulness": 9,
+                    "intuitiveness": 10,
+                    "rationale": "Text prompts ARE directions for composition—users write natural language exactly as they would brief a photographer or director. Text remains explicitly textual and editable."
+                  }
+                ],
+                "inputOutputFit": 9,
+                "overallMappingScore": 8.5,
+                "rationale": "Director's notes is perfect for positive prompts. Text input is preserved, meaning users see exactly what they typed and can edit it. Mapping acknowledges that composition notes INFORM but don't directly generate."
+              },
+              {
+                "knotType": "CLIPTextEncode",
+                "metaphorElement": "Exclusions / What to Avoid",
+                "elementFit": 7,
+                "attributeScores": [
+                  {
+                    "parameterName": "text",
+                    "metaphorControl": "Text Input - Unwanted Elements",
+                    "explanatoryPower": 8,
+                    "truthfulness": 8,
+                    "intuitiveness": 7,
+                    "rationale": "Negative prompts work as rejection lists ('no blur, no watermark'). Slightly less intuitive than positive direction—photographers think in inclusions, not exclusions—but still clear and textual."
+                  }
+                ],
+                "inputOutputFit": 8,
+                "overallMappingScore": 7.5,
+                "rationale": "Text remains textual, but the metaphor of 'unwanted elements' is somewhat forced. Photographers don't typically use formal exclusion lists, making this slightly less natural than positive prompts."
+              },
+              {
+                "knotType": "EmptyLatentImage",
+                "metaphorElement": "Film Stock / Canvas Preparation",
+                "elementFit": 7,
+                "attributeScores": [
+                  {
+                    "parameterName": "width",
+                    "metaphorControl": "Film Width Dropdown",
+                    "explanatoryPower": 8,
+                    "truthfulness": 8,
+                    "intuitiveness": 9,
+                    "rationale": "Photographers choose aspect ratios (35mm, square, panoramic) before shooting. Dropdown shows standard formats rather than pixel counts, matching photographer mental models."
+                  },
+                  {
+                    "parameterName": "height",
+                    "metaphorControl": "Film Height Dropdown",
+                    "explanatoryPower": 8,
+                    "truthfulness": 8,
+                    "intuitiveness": 9,
+                    "rationale": "Paired width/height as aspect ratio selection is intuitive. Users don't think in pixels; they think in standard film formats."
+                  },
+                  {
+                    "parameterName": "batch_size",
+                    "metaphorControl": "Exposures Per Roll Slider",
+                    "explanatoryPower": 8,
+                    "truthfulness": 8,
+                    "intuitiveness": 9,
+                    "rationale": "Film rolls have multiple exposures; slider from 1-8 is how photographers think about batch processing. Semantically aligned with actual parameter."
+                  }
+                ],
+                "inputOutputFit": 7,
+                "overallMappingScore": 7.7,
+                "rationale": "Film selection is intuitive and controls are well-designed. Weakness: latent space is abstract—the metaphor treats it as 'blank film' rather than a mathematical space, which is acceptable abstraction but loses precision."
+              },
+              {
+                "knotType": "KSampler",
+                "metaphorElement": "Exposure Development / Shutter & Processing",
+                "elementFit": 9,
+                "attributeScores": [
+                  {
+                    "parameterName": "seed",
+                    "metaphorControl": "Exposure Index Slider",
+                    "explanatoryPower": 7,
+                    "truthfulness": 6,
+                    "intuitiveness": 7,
+                    "rationale": "Seed as 'exposure index' is somewhat forced—ISO/exposure doesn't directly map to random seed. Works conceptually (initial conditions), but less truthful than steps/cfg. Users will understand 'change seed to get different results' more easily than 'adjust exposure index.'"
+                  },
+                  {
+                    "parameterName": "steps",
+                    "metaphorControl": "Development Time Slider",
+                    "explanatoryPower": 9,
+                    "truthfulness": 9,
+                    "intuitiveness": 9,
+                    "rationale": "Iterative refinement over time perfectly matches film development duration. More time = more detail. Users immediately understand longer development produces more refined results. Highly truthful."
+                  },
+                  {
+                    "parameterName": "cfg",
+                    "metaphorControl": "Development Strength Slider",
+                    "explanatoryPower": 9,
+                    "truthfulness": 8,
+                    "intuitiveness": 9,
+                    "rationale": "Stronger chemicals = more pronounced development is excellent. CFG controls how strongly prompts are followed; stronger guidance = more pronounced adherence. Range 1-20 maps to 'weak to very aggressive development.' Intuitive and mostly truthful."
+                  },
+                  {
+                    "parameterName": "sampler_name",
+                    "metaphorControl": "Development Method Dropdown",
+                    "explanatoryPower": 6,
+                    "truthfulness": 5,
+                    "intuitiveness": 6,
+                    "rationale": "Different samplers (euler, heun, dpmpp) are compared to different chemical formulations. Partially intuitive—photographers do use different developers, but the specific algorithmic differences are abstract. Users won't fully understand what 'D-76 vs HC-110' means in algorithm terms."
+                  },
+                  {
+                    "parameterName": "scheduler",
+                    "metaphorControl": "Temperature Schedule Dropdown",
+                    "explanatoryPower": 5,
+                    "truthfulness": 4,
+                    "intuitiveness": 4,
+                    "rationale": "Scheduler controls noise decay curve; mapping to 'temperature schedule' as bath cooling is forced. Photographers don't control this explicitly. Weakest control in the metaphor."
+                  }
+                ],
+                "inputOutputFit": 8,
+                "overallMappingScore": 7.5,
+                "rationale": "KSampler mapping is strong for core parameters (steps, cfg) but weaker for abstract algorithmic choices (sampler, scheduler). The metaphor excels at explaining iterative refinement but struggles with algorithm selection."
+              },
+              {
+                "knotType": "VAEDecode",
+                "metaphorElement": "Enlargement / Print From Negative",
+                "elementFit": 9,
+                "attributeScores": [],
+                "inputOutputFit": 9,
+                "overallMappingScore": 9,
+                "rationale": "VAE decode as enlargement is outstanding—compressing latent space to image IS projecting a negative onto paper. The metaphor is concrete, visual, and well-understood by photographers."
+              },
+              {
+                "knotType": "SaveImage",
+                "metaphorElement": "Print Finishing & Filing",
+                "elementFit": 8,
+                "attributeScores": [
+                  {
+                    "parameterName": "filename_prefix",
+                    "metaphorControl": "Text Input - Print Archive Name",
+                    "explanatoryPower": 9,
+                    "truthfulness": 9,
+                    "intuitiveness": 9,
+                    "rationale": "Photographers absolutely name and file their prints. Text input for filename is natural and directly maps to how users organize digital work."
+                  }
+                ],
+                "inputOutputFit": 8,
+                "overallMappingScore": 8,
+                "rationale": "Strong mapping for file organization. Weakness: actual file save is instantaneous, not a physical process, but metaphorical alignment is good enough."
+              }
+            ],
+            "ioAnalysis": {
+              "textInputHandling": 9,
+              "modelInputHandling": 9,
+              "intermediateHandling": 7,
+              "finalOutputHandling": 9,
+              "rationale": "TEXT HANDLING (9/10): Both positive and negative prompts remain explicitly textual. Users type natural language descriptions and see their text in director's clipboards. Absolutely transparent. MODEL HANDLING (9/10): Checkpoint selection is presented as 'Camera Body' dropdown—rich, intuitive abstraction that photographers understand immediately. INTERMEDIATE HANDLING (7/10): Latent space as 'unexposed negative' is reasonable abstraction but loses mathematical precision. VAE as 'enlarger' is good but the underlying tech is hidden. FINAL OUTPUT (9/10): Output IS an image, and the metaphor correctly terminates with 'developed print' and 'filed photograph'—users see exactly what they're generating."
+            }
+          },
+          "scores": {
+            "explanatoryPower": 8.2,
+            "truthfulness": 7.8,
+            "completeness": 8.5,
+            "intuitiveInteraction": 8.4,
+            "fractalConsistency": 8.1,
+            "overall": 8.18,
+            "rationale": "The Darkroom Photography metaphor is strong, concrete, and experientially grounded. STRENGTHS: (1) Text prompts remain fully textual and user-editable (9/10 text handling), giving no loss of capability. (2) Core generation parameters (steps, cfg) have excellent explanatory controls (9/10 intuitiveness for development time/strength). (3) Camera selection and film format are intuitive (8/10 model and intermediate handling). (4) Final output correctly maps to 'developed print' with file naming (9/10 final handling). (5) Audience can visualize the entire workflow as a darkroom sequence. WEAKNESSES: (1) Seed as 'exposure index' is somewhat forced (6/10 truthfulness); it's not entirely wrong but less intuitive than 'randomness source.' (2) Sampler and scheduler controls are abstract and don't map clearly to darkroom equipment (5-6/10 explanatory power); photographers don't select 'development methods' explicitly. (3) Latent space abstraction loses some technical precision (7/10 intermediate handling). COMPLETENESS: All knots have metaphor mappings; most key parameters have facade controls. Minor controls (scheduler, sampler) are included but less polished. Overall completeness is high (8.5/10). CONSISTENCY: Metaphor is relatively uniform—all elements fit within a darkroom workspace scenario. Some variance in how abstract (latent) vs. concrete (film format) elements are treated, but variance is acceptable (8.1/10 fractal consistency). OVERALL SCORE: 8.1/10—a robust, experientially intuitive metaphor that excels at preserving text input fidelity while offering photographers a familiar mental model."
+          }
+        },
+        {
+          "id": "culinary_diffusion",
+          "name": "Culinary Kitchen Laboratory",
+          "mappings": [
+            {
+              "knotType": "CheckpointLoaderSimple",
+              "metaphorElement": "Recipe Book Selection",
+              "label": "Recipe Book",
+              "description": "Loading a checkpoint is selecting which recipe book (model variant) to use. This works well because recipe books are stable, reusable knowledge sources. Weakness: the actual model weights aren't visible, but this is acceptable since model selection is abstract enough that users don't need to see internals.",
+              "facadeControls": [
+                {
+                  "id": "ckpt_dropdown",
+                  "controlType": "dropdown",
+                  "label": "Recipe Book",
+                  "rationale": "Selecting from available recipe books (checkpoints) mirrors real kitchen practice — you choose which cuisine or technique guide to follow before starting",
+                  "position": {
+                    "x": 0.5,
+                    "y": 0.85
+                  },
+                  "binding": {
+                    "dataPath": "inputs.ckpt_name",
+                    "options": [
+                      "book_1",
+                      "book_2"
+                    ]
+                  }
+                }
+              ],
+              "assetPrompt": "Weathered cookbook on a wooden counter, spine visible with embossed title, warm library lighting, top-down view",
+              "size": {
+                "width": 140,
+                "height": 180
+              }
+            },
+            {
+              "knotType": "CLIPTextEncode",
+              "metaphorElement": "Ingredient Descriptor Card (Positive)",
+              "label": "Positive Ingredients",
+              "description": "Text input for positive prompts maps directly to a handwritten ingredient list. This is STRONG because text remains fully visible and editable — users write exactly what they want included. The card metaphor is familiar (recipe cards with ingredient lists are ubiquitous).",
+              "facadeControls": [
+                {
+                  "id": "positive_text",
+                  "controlType": "text",
+                  "label": "What you want",
+                  "rationale": "Free-form text area on an ingredient card — this is the most direct, honest representation. Users type prompts exactly as they think them.",
+                  "position": {
+                    "x": 0.3,
+                    "y": 0.5
+                  },
+                  "binding": {
+                    "dataPath": "inputs.text"
+                  }
+                }
+              ],
+              "assetPrompt": "Cream-colored recipe card with handwritten list, mint-green header labeled 'Ingredients', wooden counter background, pen nearby",
+              "size": {
+                "width": 160,
+                "height": 200
+              }
+            },
+            {
+              "knotType": "CLIPTextEncode",
+              "metaphorElement": "Ingredient Descriptor Card (Negative)",
+              "label": "Negative Ingredients",
+              "description": "Text input for negative prompts maps to an 'Allergens/Exclusions' list on the back of the ingredient card. This maintains text-first interaction while being semantically clear — listing what NOT to include. Works well because exclusion lists are a natural kitchen concept.",
+              "facadeControls": [
+                {
+                  "id": "negative_text",
+                  "controlType": "text",
+                  "label": "What to exclude",
+                  "rationale": "Text area for exclusions, parallel to positive ingredients. Maintains full expressiveness while clarifying intent.",
+                  "position": {
+                    "x": 0.7,
+                    "y": 0.5
+                  },
+                  "binding": {
+                    "dataPath": "inputs.text"
+                  }
+                }
+              ],
+              "assetPrompt": "Cream-colored recipe card, red header labeled 'Avoid/Allergens', handwritten text with strikethrough style, wooden counter",
+              "size": {
+                "width": 160,
+                "height": 200
+              }
+            },
+            {
+              "knotType": "EmptyLatentImage",
+              "metaphorElement": "Prep Station & Pan Selection",
+              "label": "Workspace Setup",
+              "description": "Creating empty latent space is preparing the blank canvas — selecting pan size and batch count. This works moderately well because prep stations are physical, dimensional spaces. The batch_size parameter maps to 'how many portions' naturally. Width/height are literal pan dimensions.",
+              "facadeControls": [
+                {
+                  "id": "width_slider",
+                  "controlType": "slider",
+                  "label": "Pan Width",
+                  "rationale": "Slider for image width — directly maps to cooking vessel dimensions. Intuitive range (256-1024 pixels = small to large pan).",
+                  "position": {
+                    "x": 0.2,
+                    "y": 0.3
+                  },
+                  "binding": {
+                    "dataPath": "inputs.width",
+                    "min": 256,
+                    "max": 1024,
+                    "step": 64
+                  }
+                },
+                {
+                  "id": "height_slider",
+                  "controlType": "slider",
+                  "label": "Pan Depth",
+                  "rationale": "Slider for image height — depth dimension of the cooking vessel.",
+                  "position": {
+                    "x": 0.2,
+                    "y": 0.45
+                  },
+                  "binding": {
+                    "dataPath": "inputs.height",
+                    "min": 256,
+                    "max": 1024,
+                    "step": 64
+                  }
+                },
+                {
+                  "id": "batch_dropdown",
+                  "controlType": "dropdown",
+                  "label": "Portions to Cook",
+                  "rationale": "Number of images generated = number of portions. Dropdown for batch size (1, 2, 4, 8) feels natural in cooking context.",
+                  "position": {
+                    "x": 0.2,
+                    "y": 0.6
+                  },
+                  "binding": {
+                    "dataPath": "inputs.batch_size",
+                    "options": [
+                      1,
+                      2,
+                      4,
+                      8
+                    ]
+                  }
+                }
+              ],
+              "assetPrompt": "Stainless steel prep table with multiple empty pans of different sizes arranged, measuring tape showing dimensions, professional kitchen lighting",
+              "size": {
+                "width": 180,
+                "height": 140
+              }
+            },
+            {
+              "knotType": "KSampler",
+              "metaphorElement": "Stovetop Cooking Process",
+              "label": "Active Cooking",
+              "description": "The sampler is the active cooking process — heat applied over time with various controls. This is strong: diffusion steps = cooking time, cfg = heat intensity, seed = recipe consistency. Sampler_name and scheduler are cooking technique choices (simmer vs. sear, high heat vs. low). The weakness is that actual diffusion is stochastic exploration, not strictly linear cooking, but the metaphor captures 'iterative refinement' well enough.",
+              "facadeControls": [
+                {
+                  "id": "steps_slider",
+                  "controlType": "slider",
+                  "label": "Cooking Time (Steps)",
+                  "rationale": "Steps directly map to time on heat. More steps = longer cooking. Range 1-50 steps = quick sauté to slow braise. This is highly intuitive and truthful.",
+                  "position": {
+                    "x": 0.5,
+                    "y": 0.25
+                  },
+                  "binding": {
+                    "dataPath": "inputs.steps",
+                    "min": 1,
+                    "max": 50,
+                    "step": 1
+                  }
+                },
+                {
+                  "id": "cfg_slider",
+                  "controlType": "slider",
+                  "label": "Heat Intensity (Guidance)",
+                  "rationale": "CFG = how much to 'listen to' the recipe (prompts). High CFG = closely follow ingredient list (high heat precision). Low CFG = freestyle improvisation (gentle cooking). Range 1-20 is intuitive — high intensity vs. low.",
+                  "position": {
+                    "x": 0.5,
+                    "y": 0.4
+                  },
+                  "binding": {
+                    "dataPath": "inputs.cfg",
+                    "min": 1,
+                    "max": 20,
+                    "step": 0.5
+                  }
+                },
+                {
+                  "id": "seed_input",
+                  "controlType": "text",
+                  "label": "Recipe Batch Code",
+                  "rationale": "Seed as a batch/lot code — same seed = reproducible results, like following the same recipe twice. Numeric input fields are appropriate; seed determinism mirrors cooking reproducibility.",
+                  "position": {
+                    "x": 0.5,
+                    "y": 0.55
+                  },
+                  "binding": {
+                    "dataPath": "inputs.seed"
+                  }
+                },
+                {
+                  "id": "sampler_dropdown",
+                  "controlType": "dropdown",
+                  "label": "Cooking Technique",
+                  "rationale": "Sampler choice = cooking method (euler = steady simmering, dpmpp = precision searing). Names like 'euler', 'dpmpp_2m' don't map perfectly, but labeling them as 'Steady', 'Precision', 'Quick' would help.",
+                  "position": {
+                    "x": 0.5,
+                    "y": 0.7
+                  },
+                  "binding": {
+                    "dataPath": "inputs.sampler_name",
+                    "options": [
+                      "euler",
+                      "dpmpp_2m"
+                    ]
+                  }
+                },
+                {
+                  "id": "scheduler_dropdown",
+                  "controlType": "dropdown",
+                  "label": "Temperature Schedule",
+                  "rationale": "Scheduler = heat curve over time. 'Normal' = steady heat, 'Karras' = adaptive heat management. This is abstract but metaphor-consistent.",
+                  "position": {
+                    "x": 0.5,
+                    "y": 0.85
+                  },
+                  "binding": {
+                    "dataPath": "inputs.scheduler",
+                    "options": [
+                      "normal",
+                      "karras"
+                    ]
+                  }
+                }
+              ],
+              "assetPrompt": "Overhead view of stovetop with pan cooking, steam rising, thermometer showing temperature, wooden spoon stirring, warm kitchen lighting",
+              "size": {
+                "width": 200,
+                "height": 160
+              }
+            },
+            {
+              "knotType": "VAEDecode",
+              "metaphorElement": "Plating & Finishing",
+              "label": "Presentation",
+              "description": "VAE decode converts latent representation to final image — this is the plating step where raw dish becomes presentable. This is a subtle but effective mapping: latent space is the 'unfinished dish' (still being refined), and decode is the final plating with garnish and presentation. The weakness is that VAE is technical and invisible to users, but metaphorically treating it as 'finishing touches' is acceptable.",
+              "facadeControls": [],
+              "assetPrompt": "Chef's hands plating a finished dish onto white ceramic, garnishing with microgreens, professional kitchen lighting, finished dish in focus",
+              "size": {
+                "width": 160,
+                "height": 140
+              }
+            },
+            {
+              "knotType": "SaveImage",
+              "metaphorElement": "Plate Labeling & Storage",
+              "label": "Archive & Label",
+              "description": "Saving the image with a filename prefix is labeling the plate and storing it in the restaurant's archive. This works well because users naturally want to organize and label their creations with meaningful names.",
+              "facadeControls": [
+                {
+                  "id": "filename_text",
+                  "controlType": "text",
+                  "label": "Dish Label",
+                  "rationale": "Text input for filename — like writing the dish name on a label for storage. Users type meaningful names ('chocolate_cake_v2', 'portrait_gold_hour') and the system archives them.",
+                  "position": {
+                    "x": 0.5,
+                    "y": 0.2
+                  },
+                  "binding": {
+                    "dataPath": "inputs.filename_prefix"
+                  }
+                }
+              ],
+              "assetPrompt": "White porcelain plate on wooden shelf in organized kitchen storage, label/tag attached with string, warm ambient light",
+              "size": {
+                "width": 160,
+                "height": 140
+              }
+            }
+          ],
+          "threadStyle": {
+            "colorBy": "dataType",
+            "metaphor": "Ingredient flows, model knowledge flows, and finished dishes move between stations",
+            "colorMap": {
+              "MODEL": {
+                "color": "#8B7355",
+                "width": 4,
+                "style": "solid",
+                "label": "Knowledge (Recipe Book)"
+              },
+              "CONDITIONING": {
+                "color": "#FF6B6B",
+                "width": 3,
+                "style": "dashed",
+                "label": "Flavor Profile (Positive/Negative)"
+              },
+              "LATENT": {
+                "color": "#FFD93D",
+                "width": 3,
+                "style": "solid",
+                "label": "Cooking Process"
+              },
+              "IMAGE": {
+                "color": "#6BCB77",
+                "width": 3,
+                "style": "solid",
+                "label": "Finished Dish"
+              }
+            }
+          },
+          "waveMetaphor": "Golden aromatic waves rising from the stovetop, ingredient tendrils flowing from prep cards into the pan, finished dish elements coalescing as the plating begins",
+          "sceneDescription": "A professional kitchen laboratory viewed from above. On the left, a recipe book sits on a shelf. Two ingredient cards (positive and negative) feed into the central prep station where an empty pan awaits. The stovetop occupies the central-right space, with steam and heat visualization. Finished dishes flow to a plating station on the right, then to labeled storage shelves. Threads connect these elements as golden ingredient flows and knowledge streams.",
+          "sceneConfig": {
+            "background": "#F5E6D3",
+            "layoutMode": "horizontal",
+            "spacing": {
+              "x": 280,
+              "y": 200
+            }
+          },
+          "aiVocabulary": "In the culinary diffusion lab, you start by selecting a recipe book (checkpoint model) that contains all the technique knowledge. You then prepare two ingredient cards: one listing what flavors you want (positive prompt) and one listing allergens or flavors to avoid (negative prompt). At the prep station, you select your pan size and how many portions to cook (width, height, batch_size). The stovetop cooking process then begins: you set the cooking time (steps), adjust the heat intensity to match your recipe closely (cfg), choose your cooking technique (sampler), and optionally set a batch code (seed) for reproducibility. As the dish cooks, it transitions from raw ingredients (latent space) to fully plated and finished (VAE decode). Finally, you label your creation with a meaningful name and store it in the archive (SaveImage). Each generated image is a unique dish, refined through the iterative cooking process.",
+          "detailedScores": {
+            "mappingScores": [
+              {
+                "knotType": "CheckpointLoaderSimple",
+                "metaphorElement": "Recipe Book Selection",
+                "elementFit": 8,
+                "inputOutputFit": 9,
+                "attributeScores": [
+                  {
+                    "parameterName": "ckpt_name",
+                    "metaphorControl": "Recipe Book Dropdown",
+                    "explanatoryPower": 9,
+                    "truthfulness": 9,
+                    "intuitiveness": 9,
+                    "rationale": "Selecting a recipe book is exactly what loading a checkpoint does — choosing a stable, reusable knowledge source. The dropdown is intuitive, the metaphor is clear, and users immediately understand they're choosing foundational technique knowledge."
+                  }
+                ],
+                "overallMappingScore": 8.75,
+                "rationale": "Strong mapping. Recipe books are familiar, intuitive sources of knowledge. Slight deduction only because checkpoint weights remain hidden — but this is acceptable for mixed audiences."
+              },
+              {
+                "knotType": "CLIPTextEncode",
+                "metaphorElement": "Ingredient Descriptor Card (Positive)",
+                "elementFit": 9,
+                "inputOutputFit": 10,
+                "attributeScores": [
+                  {
+                    "parameterName": "text",
+                    "metaphorControl": "Ingredient List Text Area",
+                    "explanatoryPower": 10,
+                    "truthfulness": 10,
+                    "intuitiveness": 10,
+                    "rationale": "This is nearly perfect: text input remains as text (not abstracted), the ingredient card is a familiar real-world object, and users write exactly what they want included. No metaphorical friction. The card metaphor is iconic and universally understood."
+                  }
+                ],
+                "overallMappingScore": 9.67,
+                "rationale": "Excellent mapping. Positive prompts are ingredient lists — direct, textual, intuitive. Users see their prompts as meaningful ingredient requests, not abstract embeddings. This is one of the strongest elements of the metaphor."
+              },
+              {
+                "knotType": "CLIPTextEncode",
+                "metaphorElement": "Ingredient Descriptor Card (Negative)",
+                "elementFit": 9,
+                "inputOutputFit": 10,
+                "attributeScores": [
+                  {
+                    "parameterName": "text",
+                    "metaphorControl": "Allergens/Exclusions Text Area",
+                    "explanatoryPower": 10,
+                    "truthfulness": 10,
+                    "intuitiveness": 9,
+                    "rationale": "Exclusion lists are natural in cooking (allergens, dietary restrictions). Text remains textual and explicit. The metaphor is clear: 'avoid these flavors' = negative prompts. Slight deduction only because 'negative' prompts are slightly less intuitive than 'positive' ones in general UI, but the allergen framing helps."
+                  }
+                ],
+                "overallMappingScore": 9.5,
+                "rationale": "Excellent mapping. Negative prompts as allergens/exclusions are semantically clear and metaphor-consistent. Users understand excluding unwanted elements just as they would exclude allergens from a recipe."
+              },
+              {
+                "knotType": "EmptyLatentImage",
+                "metaphorElement": "Prep Station & Pan Selection",
+                "elementFit": 7,
+                "inputOutputFit": 8,
+                "attributeScores": [
+                  {
+                    "parameterName": "width",
+                    "metaphorControl": "Pan Width Slider",
+                    "explanatoryPower": 9,
+                    "truthfulness": 9,
+                    "intuitiveness": 9,
+                    "rationale": "Pan width is a direct, visual representation of image width. Slider range (256-1024) maps to realistic pan sizes. Highly intuitive and truthful — larger slider value = larger pan."
+                  },
+                  {
+                    "parameterName": "height",
+                    "metaphorControl": "Pan Depth Slider",
+                    "explanatoryPower": 9,
+                    "truthfulness": 9,
+                    "intuitiveness": 9,
+                    "rationale": "Pan depth mirrors image height. Same reasoning as width — direct and intuitive spatial metaphor."
+                  },
+                  {
+                    "parameterName": "batch_size",
+                    "metaphorControl": "Portions Dropdown",
+                    "explanatoryPower": 9,
+                    "truthfulness": 9,
+                    "intuitiveness": 9,
+                    "rationale": "How many portions to cook = batch_size. Natural mapping; users understand '2 portions' = '2 images generated.' Dropdown with preset values (1, 2, 4, 8) is intuitive."
+                  }
+                ],
+                "overallMappingScore": 8.67,
+                "rationale": "Strong mapping overall. Prep and pan selection directly represent image dimensions and batch count. Sliders and dropdowns are intuitive for dimensional and quantity parameters. Minor deduction because latent space as 'blank pan' is slightly abstract, but still works well metaphorically."
+              },
+              {
+                "knotType": "KSampler",
+                "metaphorElement": "Stovetop Cooking Process",
+                "elementFit": 8,
+                "inputOutputFit": 7,
+                "attributeScores": [
+                  {
+                    "parameterName": "steps",
+                    "metaphorControl": "Cooking Time Slider",
+                    "explanatoryPower": 10,
+                    "truthfulness": 9,
+                    "intuitiveness": 10,
+                    "rationale": "Steps as cooking time is intuitive and truthful. More steps = longer cooking = more refinement. Range 1-50 feels natural (quick sauté to slow braise). This is one of the most successful parameter mappings in the entire metaphor."
+                  },
+                  {
+                    "parameterName": "cfg",
+                    "metaphorControl": "Heat Intensity Slider",
+                    "explanatoryPower": 8,
+                    "truthfulness": 7,
+                    "intuitiveness": 8,
+                    "rationale": "CFG as heat intensity works metaphorically: high cfg = precise adherence to recipe = tight heat control. Low cfg = freestyle cooking = loose heat. The mapping is intuitive but slightly abstract — CFG is really a constraint weight, not heat. However, 'intensity of following the recipe' is a reasonable user-level metaphor."
+                  },
+                  {
+                    "parameterName": "seed",
+                    "metaphorControl": "Recipe Batch Code Input",
+                    "explanatoryPower": 7,
+                    "truthfulness": 8,
+                    "intuitiveness": 7,
+                    "rationale": "Seed as batch/lot code captures determinism — same seed = reproducible results. But the connection to 'batch code' is somewhat loose. Users may not immediately understand that a numeric code controls reproducibility. Truthful, but requires explanation."
+                  },
+                  {
+                    "parameterName": "sampler_name",
+                    "metaphorControl": "Cooking Technique Dropdown",
+                    "explanatoryPower": 6,
+                    "truthfulness": 6,
+                    "intuitiveness": 6,
+                    "rationale": "Sampler names (euler, dpmpp_2m) don't have obvious kitchen equivalents. Labeling them as 'Steady Simmer', 'Precision Searing' would help, but raw names are opaque. This is a weak point — the actual algorithm names don't map intuitively to cooking techniques. Truthfulness is moderate: different samplers do behave differently, but the metaphor doesn't capture it."
+                  },
+                  {
+                    "parameterName": "scheduler",
+                    "metaphorControl": "Temperature Schedule Dropdown",
+                    "explanatoryPower": 6,
+                    "truthfulness": 6,
+                    "intuitiveness": 5,
+                    "rationale": "Scheduler as 'temperature curve' is a reasonable metaphor but quite abstract. 'Normal' vs. 'Karras' scheduling don't have obvious kitchen equivalents. This is a weak mapping — users won't intuitively understand what 'Karras' means in cooking terms. Truthfulness is low because the metaphor obscures actual algorithmic differences."
+                  }
+                ],
+                "overallMappingScore": 7.43,
+                "rationale": "Mixed mapping. Steps and CFG are excellent (8-10 range), but sampler_name and scheduler are weak (5-6 range). The core cooking metaphor is strong, but advanced algorithmic choices don't translate well to kitchen terminology. Steps slider alone carries much of the mapping's weight."
+              },
+              {
+                "knotType": "VAEDecode",
+                "metaphorElement": "Plating & Finishing",
+                "elementFit": 7,
+                "inputOutputFit": 8,
+                "attributeScores": [],
+                "overallMappingScore": 7.5,
+                "rationale": "Plating and finishing is a reasonable metaphor for VAE decode — taking unfinished latent representation and making it presentable (final image). The weakness is that VAE is technical and completely hidden from users, so the metaphor serves more as narrative framing than actual interaction. Still, it's intuitive: latent = raw dish, decoded = plated dish."
+              },
+              {
+                "knotType": "SaveImage",
+                "metaphorElement": "Plate Labeling & Storage",
+                "elementFit": 8,
+                "inputOutputFit": 9,
+                "attributeScores": [
+                  {
+                    "parameterName": "filename_prefix",
+                    "metaphorControl": "Dish Label Text Input",
+                    "explanatoryPower": 9,
+                    "truthfulness": 9,
+                    "intuitiveness": 9,
+                    "rationale": "Labeling and archiving dishes is intuitive and truthful. Users naturally want to name their creations meaningfully. Text input for filename_prefix is direct and supports the metaphor perfectly. This is a strong endpoint."
+                  }
+                ],
+                "overallMappingScore": 8.67,
+                "rationale": "Strong mapping. Saving/archiving is intuitive, and naming is something users understand immediately. The metaphor maintains coherence through to the final step."
+              }
+            ],
+            "ioAnalysis": {
+              "textInputHandling": 9,
+              "modelInputHandling": 9,
+              "intermediateHandling": 7,
+              "finalOutputHandling": 7,
+              "rationale": "Text handling is excellent (9/10): positive and negative prompts remain fully textual and explicit — users write ingredient lists, not abstract embeddings. Model handling is excellent (9/10): recipe book selection is intuitive and abstract enough to not expose internal weights. Intermediate handling is moderate (7/10): latent space as 'cooking in progress' works metaphorically but is somewhat abstract. VAE as 'plating' is fine but users don't interact with it. Final output handling is moderate (7/10): the final image is a 'finished dish' metaphorically, which is good, but the actual output is a viewable PNG/JPG, not literal food — the metaphor is poetic rather than literal. This is acceptable for a mixed audience."
+            }
+          },
+          "scores": {
+            "explanatoryPower": 8.1,
+            "rationale": "Weighted average: 0.30 * 8.1 (explanatory) + 0.25 * 7.8 (truthfulness) + 0.20 * 8.2 (completeness) + 0.15 * 8.3 (intuitive) + 0.10 * 7.9 (consistency) = 2.43 + 1.95 + 1.64 + 1.25 + 0.79 = 8.06 → 8.03 rounded. This is a strong metaphor with clear strengths (text handling, core parameters) and identified weaknesses (sampler/scheduler naming, intermediate abstraction). The culinary kitchen metaphor is accessible, intuitive, and maps most parameters well. Primary limitation is that advanced algorithmic controls (sampler, scheduler) don't have natural kitchen equivalents and require either relabeling or explanation. Recommendation: rename sampler options (e.g., 'Steady', 'Precision') and scheduler options (e.g., 'Linear Heat', 'Adaptive Heat') to improve the 5-6 scores to 7-8 range, which would raise overall to ~8.3.",
+            "truthfulness": 7.8,
+            "completeness": 8.2,
+            "intuitiveInteraction": 8.3,
+            "fractalConsistency": 7.9,
+            "overall": 8.055
+          }
+        },
+        {
+          "id": "music-production-studio",
+          "name": "Music Production Studio",
+          "mappings": [
+            {
+              "knotType": "CheckpointLoaderSimple",
+              "metaphorElement": "Instrument Selection Board",
+              "label": "Choose Instrument",
+              "description": "Loading a checkpoint is like selecting which instrument (synthesizer, guitar, etc.) you'll use for the entire composition. The checkpoint defines the 'voice' of the output, just as an instrument defines its sonic character. Strength: intuitive selection metaphor. Weakness: doesn't perfectly capture that a checkpoint contains full AI model weights, not just tonal character.",
+              "facadeControls": [
+                {
+                  "id": "ckpt-selector",
+                  "controlType": "dropdown",
+                  "label": "Select Instrument",
+                  "rationale": "Dropdown naturally represents choosing one instrument from available options. Users immediately understand 'pick one' semantics.",
+                  "position": {
+                    "x": 0.5,
+                    "y": 0.8
+                  },
+                  "binding": {
+                    "dataPath": "inputs.ckpt_name",
+                    "min": 0,
+                    "max": 100,
+                    "step": 1
+                  }
+                }
+              ],
+              "assetPrompt": "A clean wooden instrument selection panel with icons for synthesizer, electric guitar, and violin silhouettes, professional studio style, 256x256",
+              "size": {
+                "width": 180,
+                "height": 140
+              }
+            },
+            {
+              "knotType": "CLIPTextEncode",
+              "metaphorElement": "Lyricist's Notepad (Positive)",
+              "label": "Write Positive Lyrics",
+              "description": "Text encoding for positive prompts is like writing the main lyrical theme or musical direction. The text directly influences what 'emotional tone' the composition takes. Strength: text input remains explicitly textual — users type words into a notepad. Weakness: music doesn't use lyrics in quite the same way as image generation uses prompts, but the 'guidance' concept maps reasonably well.",
+              "facadeControls": [
+                {
+                  "id": "pos-text-input",
+                  "controlType": "text",
+                  "label": "Positive Direction",
+                  "rationale": "Text field preserves full expressiveness of user prompts. Users can write any instruction. No abstraction layer obscures what they're inputting.",
+                  "position": {
+                    "x": 0.3,
+                    "y": 0.5
+                  },
+                  "binding": {
+                    "dataPath": "inputs.text",
+                    "min": 0,
+                    "max": 1000,
+                    "step": 1
+                  }
+                }
+              ],
+              "assetPrompt": "A lined notepad with a fountain pen resting on it, musical notes faintly visible in the background, warm studio lighting, 256x256",
+              "size": {
+                "width": 160,
+                "height": 120
+              }
+            },
+            {
+              "knotType": "CLIPTextEncode",
+              "metaphorElement": "Lyricist's Notepad (Negative)",
+              "label": "Write Negative Lyrics",
+              "description": "Negative prompts work like specifying what NOT to include in the composition — the anti-theme. Text remains fully legible and editable. Strength: same as positive — fully textual, no abstraction. Weakness: the 'negative' guidance is more of a technical concept than a natural studio practice.",
+              "facadeControls": [
+                {
+                  "id": "neg-text-input",
+                  "controlType": "text",
+                  "label": "Avoid These Elements",
+                  "rationale": "Text field for explicit negation. Users type what to exclude. Straightforward and preserves agency.",
+                  "position": {
+                    "x": 0.7,
+                    "y": 0.5
+                  },
+                  "binding": {
+                    "dataPath": "inputs.text",
+                    "min": 0,
+                    "max": 1000,
+                    "step": 1
+                  }
+                }
+              ],
+              "assetPrompt": "A lined notepad with red pen and an 'X' mark on it, slightly crumpled, studio desk background, 256x256",
+              "size": {
+                "width": 160,
+                "height": 120
+              }
+            },
+            {
+              "knotType": "EmptyLatentImage",
+              "metaphorElement": "Blank Recording Track",
+              "label": "Initialize Blank Track",
+              "description": "Empty latent image is the empty canvas — a blank recording track ready to be filled. Width/height map to track resolution/quality. Batch size is how many takes you're recording simultaneously. Strength: intuitive metaphor for 'start with nothing.' Weakness: latent space is abstract; users don't directly interact with it, so the metaphor could be confusing if they expect to see something.",
+              "facadeControls": [
+                {
+                  "id": "track-width",
+                  "controlType": "slider",
+                  "label": "Track Width (Resolution)",
+                  "rationale": "Slider for width feels like adjusting recording fidelity. Higher = more detail/quality, same as wider frequency spectrum.",
+                  "position": {
+                    "x": 0.2,
+                    "y": 0.7
+                  },
+                  "binding": {
+                    "dataPath": "inputs.width",
+                    "min": 256,
+                    "max": 1024,
+                    "step": 64
+                  }
+                },
+                {
+                  "id": "track-height",
+                  "controlType": "slider",
+                  "label": "Track Height (Depth)",
+                  "rationale": "Slider for height — think of it as track depth or dynamic range. Intuitive in recording context.",
+                  "position": {
+                    "x": 0.5,
+                    "y": 0.7
+                  },
+                  "binding": {
+                    "dataPath": "inputs.height",
+                    "min": 256,
+                    "max": 1024,
+                    "step": 64
+                  }
+                },
+                {
+                  "id": "batch-count",
+                  "controlType": "slider",
+                  "label": "Simultaneous Takes",
+                  "rationale": "Batch size as parallel recording takes — you can generate multiple variations at once, like overdubbing multiple versions of the same part.",
+                  "position": {
+                    "x": 0.8,
+                    "y": 0.7
+                  },
+                  "binding": {
+                    "dataPath": "inputs.batch_size",
+                    "min": 1,
+                    "max": 8,
+                    "step": 1
+                  }
+                }
+              ],
+              "assetPrompt": "An empty digital audio workstation track, showing timeline grid and faders, professional dark UI, 256x256",
+              "size": {
+                "width": 200,
+                "height": 140
+              }
+            },
+            {
+              "knotType": "KSampler",
+              "metaphorElement": "Synthesizer / Sound Generator",
+              "label": "Synthesize Sound",
+              "description": "The sampler is the core creative engine — like a synthesizer generating sound from parameters. Seed is the starting waveform; steps are oscillation cycles; CFG is the resonance/feedback intensity; sampler_name is the synthesis algorithm; scheduler is the envelope. Strength: 'synthesizer' immediately conveys generation/iteration. Weakness: actual sound synthesis doesn't perfectly map to diffusion sampling — it's an analogy, not a direct parallel.",
+              "facadeControls": [
+                {
+                  "id": "seed-input",
+                  "controlType": "slider",
+                  "label": "Random Seed (Starting Wave)",
+                  "rationale": "Slider for seed — think of it as the initial oscillation state. Different seeds = different starting points for synthesis. Natural for a synth.",
+                  "position": {
+                    "x": 0.15,
+                    "y": 0.3
+                  },
+                  "binding": {
+                    "dataPath": "inputs.seed",
+                    "min": 0,
+                    "max": 4294967295,
+                    "step": 1
+                  }
+                },
+                {
+                  "id": "steps-knob",
+                  "controlType": "slider",
+                  "label": "Refinement Steps (Oscillation Cycles)",
+                  "rationale": "Knob-style slider for steps — more cycles = more detailed synthesis. Intuitive in synth context where more LFO cycles = richer modulation.",
+                  "position": {
+                    "x": 0.5,
+                    "y": 0.3
+                  },
+                  "binding": {
+                    "dataPath": "inputs.steps",
+                    "min": 1,
+                    "max": 150,
+                    "step": 1
+                  }
+                },
+                {
+                  "id": "cfg-resonance",
+                  "controlType": "slider",
+                  "label": "CFG Resonance (Feedback Intensity)",
+                  "rationale": "Slider for CFG mapped to resonance/feedback. Higher values = stronger guidance signal pushed through the system, like turning up feedback on a synth.",
+                  "position": {
+                    "x": 0.85,
+                    "y": 0.3
+                  },
+                  "binding": {
+                    "dataPath": "inputs.cfg",
+                    "min": 1,
+                    "max": 20,
+                    "step": 0.5
+                  }
+                },
+                {
+                  "id": "sampler-algo",
+                  "controlType": "dropdown",
+                  "label": "Synthesis Algorithm",
+                  "rationale": "Dropdown for sampler_name — choose from different synthesis methods (Euler, DPM, etc.), like choosing between additive, FM, or subtractive synthesis.",
+                  "position": {
+                    "x": 0.3,
+                    "y": 0.15
+                  },
+                  "binding": {
+                    "dataPath": "inputs.sampler_name",
+                    "min": 0,
+                    "max": 20,
+                    "step": 1
+                  }
+                },
+                {
+                  "id": "scheduler",
+                  "controlType": "dropdown",
+                  "label": "Envelope Scheduler",
+                  "rationale": "Dropdown for scheduler — determines how the synthesis ramps up/down, like choosing ADSR envelope shapes.",
+                  "position": {
+                    "x": 0.7,
+                    "y": 0.15
+                  },
+                  "binding": {
+                    "dataPath": "inputs.scheduler",
+                    "min": 0,
+                    "max": 10,
+                    "step": 1
+                  }
+                },
+                {
+                  "id": "denoise-filter",
+                  "controlType": "slider",
+                  "label": "Denoising Filter",
+                  "rationale": "Slider for denoise — think of it as a low-pass filter reducing artifacts. Higher values = more 'clean' output, like adjusting filter cutoff.",
+                  "position": {
+                    "x": 0.5,
+                    "y": 0.05
+                  },
+                  "binding": {
+                    "dataPath": "inputs.denoise",
+                    "min": 0,
+                    "max": 1,
+                    "step": 0.01
+                  }
+                }
+              ],
+              "assetPrompt": "A professional synthesizer control panel with multiple knobs, sliders, and buttons, LED displays showing values, dark background, 256x256",
+              "size": {
+                "width": 240,
+                "height": 180
+              }
+            },
+            {
+              "knotType": "VAEDecode",
+              "metaphorElement": "Audio Interface / Digital-to-Analog Converter",
+              "label": "Convert to Playable Format",
+              "description": "VAE decode converts latent representation to final image — metaphorically, a DAC converts digital synthesis to analog audio. Strength: the encoding/decoding concept maps well to D/A conversion. Weakness: VAE is a specific neural operation; calling it a 'DAC' is a simplification that hides the complexity.",
+              "facadeControls": [],
+              "assetPrompt": "A professional audio interface device with XLR outputs and LED meters, sleek metal design, studio lighting, 256x256",
+              "size": {
+                "width": 180,
+                "height": 140
+              }
+            },
+            {
+              "knotType": "SaveImage",
+              "metaphorElement": "Master File Export / Recording Session Save",
+              "label": "Export & Save",
+              "description": "Saving the final output is like exporting a master file or saving a recording session. Filename prefix is the project name. Strength: every audio engineer understands 'save/export.' Weakness: we're saving an image, not an audio file, so the metaphor breaks if users think too hard about the medium.",
+              "facadeControls": [
+                {
+                  "id": "filename-prefix",
+                  "controlType": "text",
+                  "label": "Project Name",
+                  "rationale": "Text field for filename — users type what to call this output, just like naming a session or exporting a mix.",
+                  "position": {
+                    "x": 0.5,
+                    "y": 0.5
+                  },
+                  "binding": {
+                    "dataPath": "inputs.filename_prefix",
+                    "min": 0,
+                    "max": 255,
+                    "step": 1
+                  }
+                }
+              ],
+              "assetPrompt": "A save dialog window with a text field and checkmark button, file icons visible, professional UI, 256x256",
+              "size": {
+                "width": 180,
+                "height": 120
+              }
+            }
+          ],
+          "threadStyle": {
+            "colorBy": "dataType",
+            "metaphor": "Signal flows: instrument configuration flows as a setup signal (cyan); lyrical guidance flows as directional signals (yellow/red); latent audio data flows as synthesis data (purple); final output flows as the master signal (gold)",
+            "colorMap": {
+              "MODEL": {
+                "color": "#00FFFF",
+                "width": 3,
+                "style": "solid"
+              },
+              "CLIP": {
+                "color": "#FFD700",
+                "width": 2,
+                "style": "solid"
+              },
+              "LATENT": {
+                "color": "#9D4EDD",
+                "width": 3,
+                "style": "solid"
+              },
+              "IMAGE": {
+                "color": "#FFD700",
+                "width": 3,
+                "style": "solid"
+              }
+            }
+          },
+          "waveMetaphor": "Data tokens flow as shimmering waveforms — cyan pulses carry instrument/model info; yellow/red streams carry guidance (lyrics); purple waves carry latent synthesis data; golden light streams represent the final rendered image.",
+          "sceneDescription": "A bird's-eye view of a music production studio arranged left-to-right: Instrument Selection Board on the left; Lyricist's Notepads (positive/negative) in the center-left and center-right; a Blank Recording Track below center; a large Synthesizer dominating the center-right; an Audio Interface to its right; and an Export/Save station on the far right. Signal flows connect all elements as glowing waveforms, suggesting a complete signal chain.",
+          "sceneConfig": {
+            "background": "#1a1a2e",
+            "layoutMode": "horizontal",
+            "spacing": {
+              "x": 320,
+              "y": 240
+            }
+          },
+          "aiVocabulary": "Describe workflows using studio language: 'Select your instrument, write your positive and negative direction on the lyricist pads, initialize a blank recording track, feed those guidelines into the synthesizer where they refine through oscillation cycles controlled by resonance and envelope scheduling, convert the latent synthesis through the audio interface, and export your master file.'",
+          "detailedScores": {
+            "mappingScores": [
+              {
+                "knotType": "CheckpointLoaderSimple",
+                "metaphorElement": "Instrument Selection Board",
+                "elementFit": 7,
+                "inputOutputFit": 8,
+                "attributeScores": [
+                  {
+                    "parameterName": "ckpt_name",
+                    "metaphorControl": "Select Instrument Dropdown",
+                    "explanatoryPower": 8,
+                    "truthfulness": 7,
+                    "intuitiveness": 9,
+                    "rationale": "Dropdown immediately communicates 'pick one.' Selection is crisp and intentional. Maps well to instrument choice. Weakness: doesn't convey that a checkpoint is a massive neural network, just feels like picking a tone."
+                  }
+                ],
+                "overallMappingScore": 7.5,
+                "rationale": "Instrument metaphor is intuitive for model selection. Everyone understands 'picking an instrument changes the sound.' Weakness: loses the technical reality that you're loading a multi-billion-parameter model, but that's acceptable for mixed audiences who don't need that detail."
+              },
+              {
+                "knotType": "CLIPTextEncode",
+                "metaphorElement": "Lyricist's Notepad (Positive)",
+                "elementFit": 8,
+                "inputOutputFit": 9,
+                "attributeScores": [
+                  {
+                    "parameterName": "text",
+                    "metaphorControl": "Text Input Field",
+                    "explanatoryPower": 9,
+                    "truthfulness": 9,
+                    "intuitiveness": 9,
+                    "rationale": "Text input remains fully transparent. No abstraction. User types words, words appear in system. Perfect preservation of expressiveness. Lyricist/notepad metaphor is apt — you're writing guidance for the system."
+                  }
+                ],
+                "overallMappingScore": 8.5,
+                "rationale": "Strong mapping. Text prompts are exactly like lyrical themes — they guide the direction. Text field is the right control. No deception about what's happening. Weakness: music doesn't use text in the same way image generation does, but the concept of 'written direction' is universal enough."
+              },
+              {
+                "knotType": "CLIPTextEncode",
+                "metaphorElement": "Lyricist's Notepad (Negative)",
+                "elementFit": 7,
+                "inputOutputFit": 9,
+                "attributeScores": [
+                  {
+                    "parameterName": "text",
+                    "metaphorControl": "Text Input Field (Avoidance)",
+                    "explanatoryPower": 8,
+                    "truthfulness": 9,
+                    "intuitiveness": 8,
+                    "rationale": "Text field for negation is equally transparent. User knows exactly what they're typing. 'Avoid these elements' is clear. Slightly lower intuitiveness than positive because negation is less intuitive than affirmation in music, but still solid."
+                  }
+                ],
+                "overallMappingScore": 8,
+                "rationale": "Clear mapping. Negative guidance as 'anti-theme' is reasonable. Text field is right. Weakness: musical composition doesn't naturally use 'don't do X' as much as 'do Y,' so the negation concept is a bit forced. But it works."
+              },
+              {
+                "knotType": "EmptyLatentImage",
+                "metaphorElement": "Blank Recording Track",
+                "elementFit": 7,
+                "inputOutputFit": 6,
+                "attributeScores": [
+                  {
+                    "parameterName": "width",
+                    "metaphorControl": "Track Width Slider",
+                    "explanatoryPower": 7,
+                    "truthfulness": 6,
+                    "intuitiveness": 7,
+                    "rationale": "Width as 'resolution/fidelity' is intuitive. Higher width = more detail. But in audio, 'track width' usually means stereo vs. mono, not quality, so the mapping is slightly forced."
+                  },
+                  {
+                    "parameterName": "height",
+                    "metaphorControl": "Track Height Slider",
+                    "explanatoryPower": 6,
+                    "truthfulness": 5,
+                    "intuitiveness": 6,
+                    "rationale": "Height as 'depth' is vague. Not a strong metaphor. Truthfulness is low because height doesn't naturally mean 'depth' in audio — it's a visual concept forced into audio domain."
+                  },
+                  {
+                    "parameterName": "batch_size",
+                    "metaphorControl": "Simultaneous Takes Slider",
+                    "explanatoryPower": 8,
+                    "truthfulness": 7,
+                    "intuitiveness": 8,
+                    "rationale": "Batch as parallel takes is strong. Anyone who's done layered recording understands 'overdub multiple versions at once.' Truthful and intuitive."
+                  }
+                ],
+                "overallMappingScore": 6.8,
+                "rationale": "Blank track is intuitive as a concept, but the individual controls are mixed. Batch size is excellent; width/height are weaker. The metaphor breaks slightly because we're actually initializing a latent tensor (abstract), not a real audio track (concrete)."
+              },
+              {
+                "knotType": "KSampler",
+                "metaphorElement": "Synthesizer / Sound Generator",
+                "elementFit": 8,
+                "inputOutputFit": 7,
+                "attributeScores": [
+                  {
+                    "parameterName": "seed",
+                    "metaphorControl": "Random Seed Slider",
+                    "explanatoryPower": 7,
+                    "truthfulness": 7,
+                    "intuitiveness": 7,
+                    "rationale": "Seed as 'starting wave' is intuitive — synth users understand that initial conditions matter. Different seeds = different trajectories. Truthful metaphor. Weakness: seed range (0-4B) is huge and not reflected in slider UI."
+                  },
+                  {
+                    "parameterName": "steps",
+                    "metaphorControl": "Oscillation Cycles Slider",
+                    "explanatoryPower": 8,
+                    "truthfulness": 7,
+                    "intuitiveness": 8,
+                    "rationale": "Steps as refinement cycles is excellent in synth domain. More LFO cycles = richer modulation. Maps well. Truthful range (1-150). Intuitive for synth users."
+                  },
+                  {
+                    "parameterName": "cfg",
+                    "metaphorControl": "Resonance Slider",
+                    "explanatoryPower": 7,
+                    "truthfulness": 6,
+                    "intuitiveness": 7,
+                    "rationale": "CFG as resonance/feedback is creative. Higher CFG = stronger guidance signal, like turning up feedback. Somewhat truthful. Intuitiveness is decent but not perfect — CFG is actually 'classifier-free guidance strength,' and resonance is an imperfect analogy."
+                  },
+                  {
+                    "parameterName": "sampler_name",
+                    "metaphorControl": "Synthesis Algorithm Dropdown",
+                    "explanatoryPower": 8,
+                    "truthfulness": 7,
+                    "intuitiveness": 8,
+                    "rationale": "Mapping sampling algorithms to synthesis methods (Euler→linear, DPM→FM-like) is intuitive. Users choose one algorithm. Truthful — different samplers do produce different results. Good control."
+                  },
+                  {
+                    "parameterName": "scheduler",
+                    "metaphorControl": "Envelope Scheduler Dropdown",
+                    "explanatoryPower": 8,
+                    "truthfulness": 6,
+                    "intuitiveness": 8,
+                    "rationale": "Scheduler as envelope shape (linear, polynomial, karras, etc.) is intuitive for synth users. ADSR-like controls are familiar. Truthfulness is moderate — the scheduler doesn't exactly work like ADSR, but the analogy is reasonable."
+                  },
+                  {
+                    "parameterName": "denoise",
+                    "metaphorControl": "Denoising Filter Slider",
+                    "explanatoryPower": 8,
+                    "truthfulness": 8,
+                    "intuitiveness": 8,
+                    "rationale": "Denoise as low-pass filter is excellent. Higher denoise = more artifacts removed, like adjusting filter cutoff. Truthful (0-1 range makes sense). Very intuitive for audio producers."
+                  }
+                ],
+                "overallMappingScore": 7.4,
+                "rationale": "Synthesizer is a strong metaphor for the sampler. Most controls map well (steps, sampler, scheduler, denoise are 7-8). CFG and seed are slightly weaker but still solid. The core metaphor of 'synthesis engine generating output via iterative refinement' is accurate and intuitive."
+              },
+              {
+                "knotType": "VAEDecode",
+                "metaphorElement": "Audio Interface / DAC",
+                "elementFit": 6,
+                "inputOutputFit": 6,
+                "attributeScores": [],
+                "overallMappingScore": 6,
+                "rationale": "DAC metaphor is reasonable for decoding, but truthfulness suffers because VAE is a neural network operation, not a simple D/A conversion. The abstraction hides that VAE is doing complex upsampling/decoding. Acceptable for mixed audiences but not truthful."
+              },
+              {
+                "knotType": "SaveImage",
+                "metaphorElement": "Master File Export / Recording Session Save",
+                "elementFit": 7,
+                "inputOutputFit": 5,
+                "attributeScores": [
+                  {
+                    "parameterName": "filename_prefix",
+                    "metaphorControl": "Project Name Text Field",
+                    "explanatoryPower": 9,
+                    "truthfulness": 8,
+                    "intuitiveness": 9,
+                    "rationale": "Text field for naming is universal. Everyone saves files. Clear and intuitive. Truthfulness is high — this is literally saving a file. Perfect control choice."
+                  }
+                ],
+                "overallMappingScore": 6.5,
+                "rationale": "Save/export is intuitive, but the metaphor breaks because we're saving an *image*, not an *audio file*. An audio engineer saving a 'master' expects MP3/WAV, not PNG/JPG. Input/output fit is low for this reason, even though the control is perfect."
+              }
+            ],
+            "ioAnalysis": {
+              "textInputHandling": 9,
+              "modelInputHandling": 8,
+              "intermediateHandling": 6,
+              "finalOutputHandling": 4,
+              "rationale": "Text input is excellent — both notepads are fully transparent text fields. No abstraction. Model input is good — instrument selection is clear. Intermediate handling (latent space as blank track, VAE as DAC) is moderate — the abstractions work but hide complexity. Final output handling is weak — the metaphor produces 'synthesized sound' but the actual output is an image. This is the biggest weakness of the music studio metaphor: the medium mismatch at the end."
+            }
+          },
+          "scores": {
+            "explanatoryPower": 7.4,
+            "truthfulness": 6.8,
+            "completeness": 8,
+            "intuitiveInteraction": 7.8,
+            "fractalConsistency": 6.9,
+            "overall": 7.38,
+            "rationale": "The Music Production Studio metaphor is strong for mixed audiences and preserves text input integrity (both notepads are fully textual). Most controls are intuitive (steps as cycles, CFG as resonance, sampler as algorithm, scheduler as envelope). Instrument selection and file naming are immediately clear. Strengths: explanatory power is solid (7.4) because every step maps to a familiar studio operation; intuitiveness is high (7.8) because audio producers and musicians will recognize all the concepts. Weaknesses: truthfulness (6.8) suffers because CFG isn't truly 'resonance,' VAE isn't truly a DAC, and the final output is an image not sound — a medium mismatch. Completeness is good (8) — all major parameters have controls. Fractal consistency is moderate (6.9) because the metaphor works well through synthesis but breaks at the end (image output vs. audio metaphor). The overall score of 7.2 reflects a well-crafted metaphor with one significant flaw: the user expects to hear music, not see an image, which could create confusion despite the excellent control mappings."
+          }
+        },
+        {
+          "id": "pottery-kiln-metaphor",
+          "name": "Pottery Studio & Kiln",
+          "mappings": [
+            {
+              "knotType": "CheckpointLoaderSimple",
+              "metaphorElement": "Clay Source",
+              "label": "Clay Selection",
+              "description": "The checkpoint (model weights) becomes the clay material itself. Selecting a checkpoint is like choosing a specific clay body — each has different properties that will influence the final piece. The metaphor works because models are pre-trained materials that determine aesthetic output, just as clay type determines pottery characteristics. Weakness: clay selection is less visually obvious than a recipe or blueprint, so some users may need explanation of why this choice matters.",
+              "facadeControls": [
+                {
+                  "id": "ckpt-selector",
+                  "controlType": "dropdown",
+                  "label": "Clay Type",
+                  "rationale": "Dropdown naturally represents selecting from a palette of available materials. User can see available options and understand they're choosing a fundamental material.",
+                  "position": {
+                    "x": 0.15,
+                    "y": 0.3
+                  },
+                  "binding": {
+                    "dataPath": "inputs.ckpt_name",
+                    "min": 0,
+                    "max": 100,
+                    "step": 1
+                  }
+                }
+              ],
+              "assetPrompt": "Pottery studio shelf with stacked clay blocks in earth tones (terracotta, stoneware, porcelain white), warm studio lighting, front view, 256x256",
+              "size": {
+                "width": 180,
+                "height": 140
+              }
+            },
+            {
+              "knotType": "CLIPTextEncode",
+              "metaphorElement": "Potter's Vision (Positive)",
+              "label": "Envisioned Form",
+              "description": "Positive text prompt becomes the potter's detailed vision — what they want to create. Text input remains explicitly textual (the artist writes down their intent), which preserves full expressive capability. This is strong because text prompts ARE instructions/descriptions, just like a potter's mental image or written notes. The mapping keeps text in its native form.",
+              "facadeControls": [
+                {
+                  "id": "positive-text",
+                  "controlType": "text",
+                  "label": "What you want to create",
+                  "rationale": "Text area lets users type their full creative vision naturally. In pottery metaphor, this is the artist writing or describing their desired form, glaze, style.",
+                  "position": {
+                    "x": 0.35,
+                    "y": 0.25
+                  },
+                  "binding": {
+                    "dataPath": "inputs.text",
+                    "min": 0,
+                    "max": 77,
+                    "step": 1
+                  }
+                }
+              ],
+              "assetPrompt": "Potter's sketchbook open to a detailed pencil drawing of a ceramic vessel with annotations, warm lighting, close-up 256x256",
+              "size": {
+                "width": 200,
+                "height": 160
+              }
+            },
+            {
+              "knotType": "CLIPTextEncode",
+              "metaphorElement": "Potter's Vision (Negative)",
+              "label": "What to Avoid",
+              "description": "Negative text prompt becomes the potter's notes on what NOT to create — flaws, styles, or elements to avoid. Text remains textual and explicit. This preserves the refinement aspect of creative work (knowing what you don't want is as important as knowing what you do). Parallel to positive prompt in structure and handling.",
+              "facadeControls": [
+                {
+                  "id": "negative-text",
+                  "controlType": "text",
+                  "label": "What to avoid",
+                  "rationale": "Text area for exclusions — things the potter wants to prevent. Natural in creative process where 'avoid cracks, avoid asymmetry' is common language.",
+                  "position": {
+                    "x": 0.65,
+                    "y": 0.25
+                  },
+                  "binding": {
+                    "dataPath": "inputs.text",
+                    "min": 0,
+                    "max": 77,
+                    "step": 1
+                  }
+                }
+              ],
+              "assetPrompt": "Potter's rough notes with crossed-out sketches and written 'NO' annotations on margins, charcoal pencil style, 256x256",
+              "size": {
+                "width": 200,
+                "height": 160
+              }
+            },
+            {
+              "knotType": "EmptyLatentImage",
+              "metaphorElement": "Wheel Preparation",
+              "label": "Canvas Size Setup",
+              "description": "Empty latent space becomes the wheel prepared with centered clay, ready to be thrown. Setting width/height/batch_size is like preparing the wheel with clay of a specific amount and mounting it. The metaphor works because this is a preparatory stage that defines the scale of work to come. Weakness: latent space is abstract mathematical space, and 'prepared clay on wheel' only partially captures this (real pottery is continuous, latent space is discrete grid).",
+              "facadeControls": [
+                {
+                  "id": "width-control",
+                  "controlType": "slider",
+                  "label": "Canvas Width",
+                  "rationale": "Slider for wheel radius/clay mass. Users intuitively understand more clay = larger piece. Maps to latent dimensions.",
+                  "position": {
+                    "x": 0.25,
+                    "y": 0.55
+                  },
+                  "binding": {
+                    "dataPath": "inputs.width",
+                    "min": 256,
+                    "max": 1024,
+                    "step": 64
+                  }
+                },
+                {
+                  "id": "height-control",
+                  "controlType": "slider",
+                  "label": "Canvas Height",
+                  "rationale": "Second dimension slider. Together with width, defines the rectangular canvas size.",
+                  "position": {
+                    "x": 0.45,
+                    "y": 0.55
+                  },
+                  "binding": {
+                    "dataPath": "inputs.height",
+                    "min": 256,
+                    "max": 1024,
+                    "step": 64
+                  }
+                },
+                {
+                  "id": "batch-control",
+                  "controlType": "slider",
+                  "label": "Batch Count",
+                  "rationale": "How many pieces to throw at once. Multiple batches = multiple wheels spinning in parallel.",
+                  "position": {
+                    "x": 0.65,
+                    "y": 0.55
+                  },
+                  "binding": {
+                    "dataPath": "inputs.batch_size",
+                    "min": 1,
+                    "max": 16,
+                    "step": 1
+                  }
+                }
+              ],
+              "assetPrompt": "Pottery wheel mounted with centered clay, viewed from above, spinning motion lines, studio lighting, earth tone palette, 256x256",
+              "size": {
+                "width": 200,
+                "height": 160
+              }
+            },
+            {
+              "knotType": "KSampler",
+              "metaphorElement": "Kiln Firing Process",
+              "label": "Creation Chamber",
+              "description": "The diffusion sampling becomes the kiln — a controlled environment where clay transforms through heat and time into finished ceramics. You feed in visions (prompts), raw material (latent), and parameters control how the transformation proceeds. This is the core creative step. Strong mapping: kiln firing IS iterative transformation (steps = firing cycles); temperature/conditions control output quality (CFG = kiln intensity); randomness in pottery firing (seed = natural clay variations). Weakness: actual diffusion is mathematical iterative denoising, while kiln firing is physical/chemical — the analogy breaks if examined too closely.",
+              "facadeControls": [
+                {
+                  "id": "seed-control",
+                  "controlType": "slider",
+                  "label": "Clay Variation Seed",
+                  "rationale": "Slider with numeric input. In pottery, natural clay has slight variations that create uniqueness. Seed controls the random variations in diffusion — same clay body, slightly different results each time.",
+                  "position": {
+                    "x": 0.15,
+                    "y": 0.75
+                  },
+                  "binding": {
+                    "dataPath": "inputs.seed",
+                    "min": 0,
+                    "max": 4294967295,
+                    "step": 1
+                  }
+                },
+                {
+                  "id": "steps-control",
+                  "controlType": "slider",
+                  "label": "Firing Duration (Steps)",
+                  "rationale": "Slider representing time/iterations. More steps = longer kiln firing = more refinement of the form. 20 steps = brief firing, 50 steps = full lengthy kiln process. Intuitive in pottery context.",
+                  "position": {
+                    "x": 0.35,
+                    "y": 0.75
+                  },
+                  "binding": {
+                    "dataPath": "inputs.steps",
+                    "min": 1,
+                    "max": 50,
+                    "step": 1
+                  }
+                },
+                {
+                  "id": "cfg-control",
+                  "controlType": "slider",
+                  "label": "Kiln Intensity (Guidance)",
+                  "rationale": "How strongly the kiln 'enforces' the vision. Low intensity = loose firing, piece may vary. High intensity = strict control, piece follows vision closely. Maps CFG (classifier-free guidance) to kiln temperature/conditions intensity.",
+                  "position": {
+                    "x": 0.55,
+                    "y": 0.75
+                  },
+                  "binding": {
+                    "dataPath": "inputs.cfg",
+                    "min": 1,
+                    "max": 20,
+                    "step": 0.5
+                  }
+                },
+                {
+                  "id": "sampler-control",
+                  "controlType": "dropdown",
+                  "label": "Firing Method",
+                  "rationale": "Different sampling algorithms (Euler, DPM, etc.) are like different kiln firing schedules — fast ramp-up vs slow, reducing atmosphere vs oxidizing. Each method has different characteristics.",
+                  "position": {
+                    "x": 0.75,
+                    "y": 0.75
+                  },
+                  "binding": {
+                    "dataPath": "inputs.sampler_name",
+                    "min": 0,
+                    "max": 100,
+                    "step": 1
+                  }
+                },
+                {
+                  "id": "scheduler-control",
+                  "controlType": "dropdown",
+                  "label": "Temperature Curve",
+                  "rationale": "Scheduler controls the noise reduction pace (linear vs exponential curve). In kiln metaphor, this is the temperature ramp schedule — how quickly heat increases/decreases.",
+                  "position": {
+                    "x": 0.92,
+                    "y": 0.75
+                  },
+                  "binding": {
+                    "dataPath": "inputs.scheduler",
+                    "min": 0,
+                    "max": 100,
+                    "step": 1
+                  }
+                }
+              ],
+              "assetPrompt": "Cross-section view of a ceramic kiln glowing red-orange inside, clay vessels visible inside being transformed by heat, flames, glowing coils, 256x256",
+              "size": {
+                "width": 280,
+                "height": 200
+              }
+            },
+            {
+              "knotType": "VAEDecode",
+              "metaphorElement": "Cooling & Glazing",
+              "label": "Finishing Process",
+              "description": "VAE decode (converting latent space to image space) becomes the cooling and finishing stage — the piece comes out of the kiln hot, is cooled carefully, then glazed/finished. The abstract mathematical latent representation becomes a viewable ceramic surface. Weakness: VAE decode is actually an encoding/decoding step (mathematical compression), not physical finishing — the metaphor is somewhat loose here. However, it maintains the sequence naturally.",
+              "facadeControls": [],
+              "assetPrompt": "Potter removing a finished ceramic vessel from kiln with tongs, smoke rising, glowing pottery being cooled, workshop background, 256x256",
+              "size": {
+                "width": 200,
+                "height": 160
+              }
+            },
+            {
+              "knotType": "SaveImage",
+              "metaphorElement": "Gallery Display / Catalog",
+              "label": "Presentation & Archiving",
+              "description": "Saving the final image becomes cataloging the finished piece in the pottery gallery — documenting it for the world to see. The filename becomes the piece label/name in the catalog. This completes the creative cycle: raw material → envisioning → creation → finishing → sharing. Strong because it mirrors real pottery workflows (artists document and display finished work).",
+              "facadeControls": [
+                {
+                  "id": "filename-control",
+                  "controlType": "text",
+                  "label": "Piece Name/ID",
+                  "rationale": "Text field for naming the work. Just as potters label their pieces ('Vase 2024-A'), users name their outputs for organizational clarity.",
+                  "position": {
+                    "x": 0.5,
+                    "y": 0.9
+                  },
+                  "binding": {
+                    "dataPath": "inputs.filename_prefix",
+                    "min": 0,
+                    "max": 100,
+                    "step": 1
+                  }
+                }
+              ],
+              "assetPrompt": "Gallery shelf displaying finished ceramic pieces, well-lit with warm spotlights, labeled plaques under each vessel, professional gallery setting, 256x256",
+              "size": {
+                "width": 220,
+                "height": 160
+              }
+            }
+          ],
+          "threadStyle": {
+            "colorBy": "dataType",
+            "metaphor": "Flows represent: (1) clay/material flowing from source through the artist's creative process, (2) the artist's written vision flowing into the kiln, (3) prepared canvas flowing in, (4) all converging into the kiln transformation, (5) finished ceramic piece flowing to cooling/finishing, then to gallery.",
+            "colorMap": {
+              "MODEL": {
+                "color": "#8B6914",
+                "width": 4,
+                "style": "solid"
+              },
+              "CLIP": {
+                "color": "#D2691E",
+                "width": 3,
+                "style": "solid"
+              },
+              "LATENT": {
+                "color": "#CD853F",
+                "width": 3,
+                "style": "dashed"
+              },
+              "IMAGE": {
+                "color": "#DAA520",
+                "width": 4,
+                "style": "solid"
+              }
+            }
+          },
+          "waveMetaphor": "Data tokens moving through this workflow are like clay particles flowing: they start as raw clay (model), get shaped by the artist's vision (text prompts), are placed on the wheel (latent prep), then transformed through the kiln's heat (diffusion steps), cooled into final form (VAE decode), and cataloged in the gallery (saved image). Each stage the data becomes more refined and organized.",
+          "sceneDescription": "An aerial view of a pottery studio-kiln complex: on the left, clay storage shelves; in the center-left, a potter's workbench with vision sketches; center, a large glowing kiln with multiple wheels of prepared clay; right side, cooling racks with finished pieces; far right, gallery display shelves with labeled pieces. Warm earth-tone lighting, clay dust floating in light rays, wooden workbenches, terracotta pots scattered throughout. The entire workflow flows left-to-right: material selection → envisioning → preparation → creation → finishing → display.",
+          "sceneConfig": {
+            "background": "#DEB887",
+            "layoutMode": "horizontal",
+            "spacing": {
+              "x": 320,
+              "y": 220
+            }
+          },
+          "aiVocabulary": "When narrating this workflow, describe it as a pottery creation process: 'You select a clay body (checkpoint), envision what you want to create (positive prompt) and what to avoid (negative prompt), prepare your canvas by centering clay on the wheel (latent image), then fire it in the kiln with specific conditions (KSampler with steps, CFG, seed controlling the creation process). The piece cools and is glazed/finished (VAE decode), then cataloged in your studio gallery (save image). Higher steps mean longer, more refined firing. Higher CFG means stricter adherence to your artistic vision. Different samplers are like different firing schedules. The seed introduces natural variations like real clay does.'",
+          "detailedScores": {
+            "mappingScores": [
+              {
+                "knotType": "CheckpointLoaderSimple",
+                "metaphorElement": "Clay Source",
+                "elementFit": 8,
+                "inputOutputFit": 8,
+                "attributeScores": [
+                  {
+                    "parameterName": "ckpt_name",
+                    "metaphorControl": "Clay Type Dropdown",
+                    "explanatoryPower": 8,
+                    "truthfulness": 8,
+                    "intuitiveness": 9,
+                    "rationale": "Dropdown is intuitive for selecting from a palette of materials. Clay selection clearly affects final output (color, texture), directly paralleling how model checkpoints determine aesthetic. Users understand 'choosing material' naturally."
+                  }
+                ],
+                "overallMappingScore": 8,
+                "rationale": "Clay source is a strong metaphorical anchor. Models are pre-trained weights that determine output characteristics, exactly like clay body determines ceramic properties. Dropdown control is natural. Weakness: less immediately obvious than recipe or blueprint metaphors, but gains authenticity in craft context."
+              },
+              {
+                "knotType": "CLIPTextEncode",
+                "metaphorElement": "Potter's Vision (Positive)",
+                "elementFit": 9,
+                "inputOutputFit": 9,
+                "attributeScores": [
+                  {
+                    "parameterName": "text",
+                    "metaphorControl": "Vision Text Area",
+                    "explanatoryPower": 9,
+                    "truthfulness": 9,
+                    "intuitiveness": 9,
+                    "rationale": "Text input remains explicitly textual — this is critical. Potter writes down or describes their intended form. Text is the native medium for prompts; no abstraction loses information. Users understand 'write what you want' immediately."
+                  }
+                ],
+                "overallMappingScore": 9,
+                "rationale": "Excellent mapping. Text prompts ARE descriptions/instructions, and a pottery studio vision is exactly that. No forced abstraction. Text remains fully legible and editable. This is one of the metaphor's strongest points."
+              },
+              {
+                "knotType": "CLIPTextEncode",
+                "metaphorElement": "Potter's Vision (Negative)",
+                "elementFit": 8,
+                "inputOutputFit": 9,
+                "attributeScores": [
+                  {
+                    "parameterName": "text",
+                    "metaphorControl": "Avoid Text Area",
+                    "explanatoryPower": 8,
+                    "truthfulness": 9,
+                    "intuitiveness": 8,
+                    "rationale": "Negative prompts become refinement notes (what NOT to create). Natural in pottery — artists regularly note 'avoid cracks', 'no asymmetry', 'avoid thick walls'. Text is explicit. Slightly less intuitive than positive prompt (people more naturally focus on what they want), but still very strong."
+                  }
+                ],
+                "overallMappingScore": 8.3,
+                "rationale": "Strong secondary mapping. Maintains textual explicitness. Parallel structure to positive prompt aids understanding. In creative workflows, exclusion is as important as inclusion."
+              },
+              {
+                "knotType": "EmptyLatentImage",
+                "metaphorElement": "Wheel Preparation",
+                "elementFit": 6,
+                "inputOutputFit": 6,
+                "attributeScores": [
+                  {
+                    "parameterName": "width",
+                    "metaphorControl": "Canvas Width Slider",
+                    "explanatoryPower": 7,
+                    "truthfulness": 6,
+                    "intuitiveness": 7,
+                    "rationale": "Slider for wheel size/clay mass. Users understand 'more clay = larger piece'. But latent dimensions (256x256 vs 512x512) are discrete grid points, not continuous clay — partially truthful."
+                  },
+                  {
+                    "parameterName": "height",
+                    "metaphorControl": "Canvas Height Slider",
+                    "explanatoryPower": 7,
+                    "truthfulness": 6,
+                    "intuitiveness": 7,
+                    "rationale": "Second dimension. Combined with width, forms aspect ratio. In pottery, height and width are continuous properties; here they're discrete tokens. Functional but not perfectly truthful."
+                  },
+                  {
+                    "parameterName": "batch_size",
+                    "metaphorControl": "Batch Count Slider",
+                    "explanatoryPower": 8,
+                    "truthfulness": 8,
+                    "intuitiveness": 8,
+                    "rationale": "Multiple wheels spinning in parallel is intuitive for batch processing. Users understand 'more wheels = more pieces made at once'. Truthful — batch_size directly maps to parallel processing."
+                  }
+                ],
+                "overallMappingScore": 6.5,
+                "rationale": "Moderate mapping. Wheel preparation is a plausible metaphor for latent space setup, but latent space is abstract mathematical construct, and pottery clay is physical. The metaphor works for user understanding (understand output size), but breaks if examined deeply. Not a critical weakness because latent space can be abstracted in many workflows."
+              },
+              {
+                "knotType": "KSampler",
+                "metaphorElement": "Kiln Firing Process",
+                "elementFit": 8,
+                "inputOutputFit": 8,
+                "attributeScores": [
+                  {
+                    "parameterName": "seed",
+                    "metaphorControl": "Clay Variation Seed Slider",
+                    "explanatoryPower": 7,
+                    "truthfulness": 7,
+                    "intuitiveness": 7,
+                    "rationale": "Seed as natural clay variations is intuitive — same clay body creates slightly different pots due to natural variation. Truthful: seed controls stochastic variation in diffusion. Slightly abstract (users may not understand seed's actual computational role)."
+                  },
+                  {
+                    "parameterName": "steps",
+                    "metaphorControl": "Firing Duration Slider",
+                    "explanatoryPower": 8,
+                    "truthfulness": 7,
+                    "intuitiveness": 9,
+                    "rationale": "Steps as firing duration is excellent. More time = more refinement. Users understand 'longer kiln time = better quality piece'. Truthful: more steps = more diffusion iterations = refined image. Range (1-50) maps intuitively to kiln duration perception."
+                  },
+                  {
+                    "parameterName": "cfg",
+                    "metaphorControl": "Kiln Intensity Slider",
+                    "explanatoryPower": 7,
+                    "truthfulness": 6,
+                    "intuitiveness": 6,
+                    "rationale": "CFG (classifier-free guidance) as kiln intensity/temperature is somewhat forced. It controls how strictly diffusion follows prompts, like kiln controls transform. But CFG is algorithmic guidance, not physical intensity — metaphor partially breaks. Still intuitive for basic understanding (higher = stricter control)."
+                  },
+                  {
+                    "parameterName": "sampler_name",
+                    "metaphorControl": "Firing Method Dropdown",
+                    "explanatoryPower": 6,
+                    "truthfulness": 6,
+                    "intuitiveness": 5,
+                    "rationale": "Different samplers (Euler, DPM, etc.) as different firing schedules is creative but abstract. Users won't intuitively understand what 'DPM++ 2M' means as a 'firing schedule'. Truthful-ish: different samplers do produce different results, like different schedules. Weak point in this metaphor."
+                  },
+                  {
+                    "parameterName": "scheduler",
+                    "metaphorControl": "Temperature Curve Dropdown",
+                    "explanatoryPower": 5,
+                    "truthfulness": 5,
+                    "intuitiveness": 4,
+                    "rationale": "Scheduler as temperature curve is quite abstract. The scheduler controls noise schedule pacing — exponential vs linear. This is deeply mathematical and doesn't clearly map to pottery. Weakest control in this mapping. Most users won't understand what this does in pottery terms."
+                  }
+                ],
+                "overallMappingScore": 6.8,
+                "rationale": "Core element is strong (kiln = transformation chamber), but facade controls are mixed. Steps and seed are excellent; sampler and scheduler controls are weak abstractions. Overall the kiln metaphor captures the core idea (iterative refinement through multiple 'firings') but struggles with advanced parameters. For beginner/intermediate users, sufficient; for power users, the metaphor breaks down on advanced controls."
+              },
+              {
+                "knotType": "VAEDecode",
+                "metaphorElement": "Cooling & Glazing",
+                "elementFit": 5,
+                "inputOutputFit": 6,
+                "attributeScores": [],
+                "overallMappingScore": 5.5,
+                "rationale": "Weak mapping. VAE decode is actually an encoding/decoding mathematical operation (compressing/decompressing in latent space). 'Cooling and glazing' is physically intuitive but technically inaccurate. The piece going from hot kiln to finished ceramic is appealing narratively but misrepresents what VAE actually does. However, the sequence (kiln → cooling → finished piece) maintains workflow intuition. Users won't understand what VAE actually does from this metaphor, but they'll understand 'after creation comes finishing'."
+              },
+              {
+                "knotType": "SaveImage",
+                "metaphorElement": "Gallery Display / Catalog",
+                "elementFit": 7,
+                "inputOutputFit": 8,
+                "attributeScores": [
+                  {
+                    "parameterName": "filename_prefix",
+                    "metaphorControl": "Piece Name Text Field",
+                    "explanatoryPower": 8,
+                    "truthfulness": 8,
+                    "intuitiveness": 9,
+                    "rationale": "Text field for naming artwork is natural. Potters name their pieces; photographers name their prints. Users understand 'give it a name for organizing your work'. Truthful: filename_prefix directly controls saved file naming."
+                  }
+                ],
+                "overallMappingScore": 7.3,
+                "rationale": "Good closing element. Gallery/catalog metaphor completes the creative cycle and mirrors real pottery workflows. Text field for naming is intuitive. Weakness: the actual output is a digital image file, not a physical pottery piece on display, so slight mismatch in finality."
+              }
+            ],
+            "ioAnalysis": {
+              "textInputHandling": 9,
+              "modelInputHandling": 8,
+              "intermediateHandling": 5,
+              "finalOutputHandling": 7,
+              "rationale": "Text input handling is excellent (text remains explicitly textual in pottery vision). Model handling is strong (clay source metaphor is clear). Intermediate handling is weak: latent space becomes 'prepared clay on wheel' (loose abstraction) and VAE becomes 'cooling/glazing' (technically inaccurate but narratively useful). Final output handling is adequate: image becomes 'finished ceramic piece' — close but user receives a digital image file, not physical pottery. Overall pipeline maintains user understanding while simplifying abstractions."
+            }
+          },
+          "scores": {
+            "explanatoryPower": 7.4,
+            "truthfulness": 6.8,
+            "completeness": 8,
+            "intuitiveInteraction": 7.2,
+            "fractalConsistency": 6.5,
+            "overall": 7.25,
+            "rationale": "The Pottery Studio metaphor scores well on explanatory power (7.4) because it uses a familiar craft context that most people have basic familiarity with. Text input handling is excellent (9/10) — prompts remain textual vision notes. Model handling is strong (8/10) — clay source is intuitive. However, truthfulness suffers (6.8) due to weak intermediate mappings: latent space as 'prepared clay' is loose (6.5/10 elementFit), and VAE decode as 'cooling/glazing' misrepresents the actual mathematical operation (5.5/10 elementFit). The KSampler kiln metaphor is strong for steps (8/10) and seed (7/10) but breaks on sampler_name (6/10) and scheduler (5/10) controls — advanced parameters don't map intuitively. Completeness is good (8.0) — all major knots have mappings and key parameters have controls. Intuitive interaction is solid (7.2) — beginning-to-intermediate users will understand the workflow naturally, though power users will find sampler/scheduler controls unhelpful. Fractal consistency is moderate (6.5) — clay metaphor is consistent, kiln metaphor is consistent, but VAE decode breaks the craft metaphor. Overall 7.2 reflects a solid, usable metaphor with good narrative arc and text-handling clarity, but with acknowledged gaps in abstract parameter representation and technical accuracy on intermediate steps. Strengths: text prompts stay textual, familiar craft domain, intuitive controls for core parameters (steps, seed, batch). Weaknesses: sampler/scheduler controls unintuitive, VAE mapping is weak, latent space abstraction loose, final output mismatch (digital file vs physical piece)."
+          }
+        }
+      ],
+      "timestamp": "2026-02-18T02:54:17.821Z",
+      "model": "claude-haiku-4-5-20251001"
+    }
+  ]
+}

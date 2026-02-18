@@ -1,0 +1,538 @@
+{
+  "id": "darkroom-photography",
+  "name": "Darkroom Photography Studio",
+  "mappings": [
+    {
+      "knotType": "CheckpointLoaderSimple",
+      "metaphorElement": "Camera Body & Lens Selection",
+      "label": "Select Camera",
+      "description": "The checkpoint is the foundational model — analogous to choosing a specific camera body and lens combination. Each checkpoint is like a different camera system with its own optical characteristics and rendering style. This is a strong mapping because model selection is inherently about choosing the tool's fundamental behavior, which users understand immediately. Weakness: camera bodies don't actually change what a photograph depicts, but checkpoints do influence the entire output style — the metaphor is explanatory but not perfectly literal.",
+      "facadeControls": [
+        {
+          "id": "camera_selector",
+          "controlType": "dropdown",
+          "label": "Camera Model",
+          "rationale": "Dropdown naturally represents choosing one camera from a collection. Users understand that different cameras produce different visual aesthetics. The metaphor of 'camera bodies' makes checkpoint selection feel like a compositional decision rather than a technical one.",
+          "position": {
+            "x": 0.5,
+            "y": 0.2
+          },
+          "binding": {
+            "dataPath": "inputs.ckpt_name",
+            "min": 0,
+            "max": 1,
+            "step": 1
+          }
+        }
+      ],
+      "assetPrompt": "Professional camera body with interchangeable lens mount, photographed from above on a studio table, clean shadows, 256x256 square",
+      "size": {
+        "width": 180,
+        "height": 140
+      }
+    },
+    {
+      "knotType": "CLIPTextEncode",
+      "metaphorElement": "Positive Light Setup (keylight, fill, accent)",
+      "label": "Positive Light Direction",
+      "description": "Positive prompts guide what SHOULD appear in the image — this maps to the photographer's lighting setup that illuminates desired subjects. The metaphor works because lighting is about emphasizing what you want to see. However, this creates a subtle truthfulness issue: text prompts are linguistic descriptions (e.g., 'a red barn'), while lighting is purely visual. The mapping sacrifices literal accuracy for intuitive control — users understand that 'positive' means 'illuminate/emphasize.'",
+      "facadeControls": [
+        {
+          "id": "positive_text",
+          "controlType": "text",
+          "label": "Describe the Scene",
+          "rationale": "Text input remains explicitly textual — users type descriptive words. Within the darkroom metaphor, this is the photographer's mental note about what subjects to light and emphasize. This preserves the user's ability to write natural language while anchoring it to the lighting concept.",
+          "position": {
+            "x": 0.3,
+            "y": 0.5
+          },
+          "binding": {
+            "dataPath": "inputs.text",
+            "min": 0,
+            "max": 10000,
+            "step": 1
+          }
+        }
+      ],
+      "assetPrompt": "Studio lighting setup with three-point lights: bright keylight from left, soft fill light from right, accent light on background, shot from above, clean studio floor, 256x256",
+      "size": {
+        "width": 160,
+        "height": 160
+      }
+    },
+    {
+      "knotType": "CLIPTextEncode",
+      "metaphorElement": "Negative Light Blocker (flags, gobos, negative fill)",
+      "label": "Shadow Blocks",
+      "description": "Negative prompts remove unwanted elements — this maps to light-blocking tools (flags, gobos, black fabric) that prevent light from reaching parts of the scene. This is a creative but slightly loose mapping: 'blocks light' intuitively maps to 'prevents appearance' but text input (describing what NOT to photograph) isn't literally about blocking light. Strength: the visual/spatial metaphor of 'blocking' is intuitive. Weakness: users still type text (e.g., 'no people'), not position light blockers.",
+      "facadeControls": [
+        {
+          "id": "negative_text",
+          "controlType": "text",
+          "label": "Block These Elements",
+          "rationale": "Text input for negative prompts. Within the metaphor, this is instructions for where to place light blockers. Users write what should NOT appear, which mirrors instructing an assistant where to position flags/gobos.",
+          "position": {
+            "x": 0.7,
+            "y": 0.5
+          },
+          "binding": {
+            "dataPath": "inputs.text",
+            "min": 0,
+            "max": 10000,
+            "step": 1
+          }
+        }
+      ],
+      "assetPrompt": "Black cloth light blockers, gobos, and flags arranged on stands, blocking light from reaching certain areas, studio floor view from above, dramatic shadows, 256x256",
+      "size": {
+        "width": 160,
+        "height": 160
+      }
+    },
+    {
+      "knotType": "EmptyLatentImage",
+      "metaphorElement": "Blank Film Stock / Exposure Setup",
+      "label": "Film Stock & Dimensions",
+      "description": "The empty latent is the starting canvas in compressed space — analogous to fresh film stock with a chosen frame size. Width/height/batch_size map naturally to film dimensions and number of shots. This is strong because the metaphor is direct: you're defining the blank slate before exposure. Weakness: 'latent space' is not literally film stock — it's a neural compression, but the metaphorical mapping allows users to think in concrete film terms.",
+      "facadeControls": [
+        {
+          "id": "film_width",
+          "controlType": "slider",
+          "label": "Frame Width (pixels)",
+          "rationale": "Slider for frame width — users adjust like changing from 35mm to medium format. Pixel dimensions are the film stock's aspect ratio. Intuitive because photographers routinely think in frame dimensions.",
+          "position": {
+            "x": 0.3,
+            "y": 0.75
+          },
+          "binding": {
+            "dataPath": "inputs.width",
+            "min": 256,
+            "max": 2048,
+            "step": 64
+          }
+        },
+        {
+          "id": "film_height",
+          "controlType": "slider",
+          "label": "Frame Height (pixels)",
+          "rationale": "Slider for frame height. Together with width, this feels like selecting portrait vs. landscape orientation — a familiar photographer choice.",
+          "position": {
+            "x": 0.5,
+            "y": 0.75
+          },
+          "binding": {
+            "dataPath": "inputs.height",
+            "min": 256,
+            "max": 2048,
+            "step": 64
+          }
+        },
+        {
+          "id": "batch_count",
+          "controlType": "slider",
+          "label": "Number of Shots",
+          "rationale": "Batch size as number of film frames to expose in one pass. Users understand 'take 4 shots' as a photography concept. Truthful and intuitive.",
+          "position": {
+            "x": 0.7,
+            "y": 0.75
+          },
+          "binding": {
+            "dataPath": "inputs.batch_size",
+            "min": 1,
+            "max": 16,
+            "step": 1
+          }
+        }
+      ],
+      "assetPrompt": "Rolls of film stock in different sizes, some with 35mm, some medium format, stacked neatly on a darkroom counter, studio lighting from above, 256x256",
+      "size": {
+        "width": 160,
+        "height": 120
+      }
+    },
+    {
+      "knotType": "KSampler",
+      "metaphorElement": "Exposure & Development Process",
+      "label": "Expose & Develop Film",
+      "description": "The KSampler is the core generation engine — it iteratively refines the image. This maps well to film exposure (letting light hit the film) and development (chemical refinement over time). Steps = time in developer; CFG = exposure compensation; seed = shutter release timing. This is a strong mapping because the iterative refinement feels like watching a photograph develop in the chemical bath. Weakness: the actual process is neural diffusion, not chemistry, but the metaphorical progression (rough → detailed) parallels developer tank refinement.",
+      "facadeControls": [
+        {
+          "id": "exposure_seed",
+          "controlType": "slider",
+          "label": "Shutter Moment",
+          "rationale": "Seed as the moment of shutter release — each moment captures a different instant. Users understand 'trying different moments' as a photography concept (continuous shooting). The numerical seed feels like frame numbering on film.",
+          "position": {
+            "x": 0.2,
+            "y": 0.4
+          },
+          "binding": {
+            "dataPath": "inputs.seed",
+            "min": 0,
+            "max": 4294967295,
+            "step": 1
+          }
+        },
+        {
+          "id": "dev_time",
+          "controlType": "slider",
+          "label": "Development Time (steps)",
+          "rationale": "Steps as time in the developer bath. More time = more refinement of detail, just as longer development brings out more tonal information. This is intuitive: photographers know longer development increases contrast and detail. Truthful analogy because more steps = more diffusion refinement.",
+          "position": {
+            "x": 0.5,
+            "y": 0.4
+          },
+          "binding": {
+            "dataPath": "inputs.steps",
+            "min": 1,
+            "max": 150,
+            "step": 1
+          }
+        },
+        {
+          "id": "exposure_comp",
+          "controlType": "slider",
+          "label": "Exposure Compensation (CFG)",
+          "rationale": "CFG as exposure compensation — how much to correct/brighten the image. In photography, exposure comp adjusts how over/underexposed the result is. In diffusion, CFG controls how strongly the model adheres to the prompt (tighter/more guided = 'brighter'). The analogy holds well for users familiar with camera exposure compensation.",
+          "position": {
+            "x": 0.8,
+            "y": 0.4
+          },
+          "binding": {
+            "dataPath": "inputs.cfg",
+            "min": 1,
+            "max": 30,
+            "step": 0.5
+          }
+        },
+        {
+          "id": "dev_profile",
+          "controlType": "dropdown",
+          "label": "Development Profile (Sampler)",
+          "rationale": "Sampler choice as selecting a development chemistry or process (fast vs. slow, contrasty vs. soft). Different samplers produce different visual characteristics, analogous to choosing between D-76, HC-110, or other developers. Intuitive for photography enthusiasts.",
+          "position": {
+            "x": 0.35,
+            "y": 0.6
+          },
+          "binding": {
+            "dataPath": "inputs.sampler_name",
+            "min": 0,
+            "max": 1,
+            "step": 1
+          }
+        },
+        {
+          "id": "dev_curve",
+          "controlType": "dropdown",
+          "label": "Development Curve (Scheduler)",
+          "rationale": "Scheduler as the agitation schedule or temperature curve during development. Different schedules produce different tonal progressions. More abstract than sampler, but users understand that development methodology affects results.",
+          "position": {
+            "x": 0.65,
+            "y": 0.6
+          },
+          "binding": {
+            "dataPath": "inputs.scheduler",
+            "min": 0,
+            "max": 1,
+            "step": 1
+          }
+        },
+        {
+          "id": "partial_dev",
+          "controlType": "slider",
+          "label": "Partial Development (%)",
+          "rationale": "Denoise as the percentage of development to apply. 1.0 = full development; 0.5 = stop halfway. Intuitive for photographers who understand pulling negatives early from the developer to reduce contrast.",
+          "position": {
+            "x": 0.5,
+            "y": 0.6
+          },
+          "binding": {
+            "dataPath": "inputs.denoise",
+            "min": 0,
+            "max": 1,
+            "step": 0.05
+          }
+        }
+      ],
+      "assetPrompt": "Darkroom developer tank with red light glow, photographic paper slowly appearing in chemical bath, tongs at the side, clock showing elapsed time, 256x256 atmospheric",
+      "size": {
+        "width": 200,
+        "height": 160
+      }
+    },
+    {
+      "knotType": "VAEDecode",
+      "metaphorElement": "Drying & Fixing (Stabilization)",
+      "label": "Fix & Dry Negative",
+      "description": "The VAE decoder converts latent space back to pixel space — this maps to fixing (chemical stabilization) and drying the developed negative. The latent is the 'soft' developed film; the VAE decode 'hardens' it into final form. This is a loose but functional mapping: VAE is a technical compression step, but the metaphor of 'stabilizing the image' via fixing and drying is intuitive. Weakness: VAE parameters are hidden in this flow, so users don't directly control the decoding process.",
+      "facadeControls": [],
+      "assetPrompt": "Negative hanging on a clothesline in a darkroom, water droplets falling, red safelight illuminating, fixing bath containers nearby, clean simple composition, 256x256",
+      "size": {
+        "width": 140,
+        "height": 140
+      }
+    },
+    {
+      "knotType": "SaveImage",
+      "metaphorElement": "Printing & Storage",
+      "label": "Print & File Photo",
+      "description": "The final save operation maps to printing the negative onto photographic paper and filing it. This is a strong, intuitive mapping: photographers understand 'saving' as making a final print and storing the negative. The filename becomes the print label/archive reference. Strength: very direct and intuitive. Weakness: the actual output is digital, not a physical print, but the metaphor of 'finalizing' is clear.",
+      "facadeControls": [
+        {
+          "id": "print_label",
+          "controlType": "text",
+          "label": "Print Label / Archive Reference",
+          "rationale": "Filename as a label written on the print envelope or negative sleeve. Users naturally understand naming the output. Truthful because filenames directly control how the image is stored.",
+          "position": {
+            "x": 0.5,
+            "y": 0.85
+          },
+          "binding": {
+            "dataPath": "inputs.filename_prefix",
+            "min": 0,
+            "max": 255,
+            "step": 1
+          }
+        }
+      ],
+      "assetPrompt": "Finished photographic print lying on a darkroom counter, archival storage box beside it, negative sleeve with label, soft amber safelight, 256x256",
+      "size": {
+        "width": 160,
+        "height": 140
+      }
+    }
+  ],
+  "threadStyle": {
+    "colorBy": "dataType",
+    "metaphor": "Light rays, chemical solutions, and sensitized surfaces flowing between stations in the darkroom workflow",
+    "colorMap": {
+      "MODEL": {
+        "color": "#8B4513",
+        "width": 4,
+        "style": "solid",
+        "label": "Camera/Equipment Signal"
+      },
+      "CLIP": {
+        "color": "#FFD700",
+        "width": 3,
+        "style": "solid",
+        "label": "Light Specification"
+      },
+      "LATENT": {
+        "color": "#4A90E2",
+        "width": 3,
+        "style": "dashed",
+        "label": "Developing Negative"
+      },
+      "IMAGE": {
+        "color": "#E8E8E8",
+        "width": 3,
+        "style": "solid",
+        "label": "Finished Print"
+      }
+    }
+  },
+  "waveMetaphor": "Light photons (yellow rays), chemical molecules (blue dashes), and pigment particles (white sparkles) flow through the darkroom, accumulating detail as they pass through each station. When CFG or steps increase, the flows brighten and densify, showing more refinement.",
+  "sceneDescription": "A vintage darkroom viewed from above. On the left: a camera body on a tripod with lighting rigs overhead. In the center: multiple development trays arranged in sequence (one for positive prompts/keylight, one for negative prompts/blockers, one for exposure/development). On the right: a clothesline with hanging negatives (VAE stage) and a print drying rack (final output). Thin red safelight washes the entire scene. Cables and light rays connect each station, color-coded by data type. An analog clock on the wall shows the passage of 'steps.'",
+  "sceneConfig": {
+    "background": "#3D2817",
+    "layoutMode": "horizontal",
+    "spacing": {
+      "x": 320,
+      "y": 220
+    }
+  },
+  "aiVocabulary": "In the darkroom, the photographer selects a camera body (checkpoint), sets up lighting to illuminate desired subjects (positive prompts) and blocks unwanted light (negative prompts), loads fresh film stock at the chosen dimensions (empty latent), and then opens the shutter to expose and develop the image in the chemical bath, adjusting development time, chemistry type, and exposure compensation to refine details until the print is perfect. Finally, the negative is fixed and dried, then printed and filed.",
+  "detailedScores": {
+    "mappingScores": [
+      {
+        "knotType": "CheckpointLoaderSimple",
+        "metaphorElement": "Camera Body & Lens Selection",
+        "elementFit": 8,
+        "inputOutputFit": 8,
+        "overallMappingScore": 8,
+        "attributeScores": [
+          {
+            "parameterName": "ckpt_name",
+            "metaphorControl": "Camera Model Dropdown",
+            "explanatoryPower": 9,
+            "truthfulness": 7,
+            "intuitiveness": 9,
+            "rationale": "Camera selection is intuitive and natural. Truthfulness is 7 (not 10) because checkpoints aren't literally cameras — they're neural models — but the behavior mapping (different tool = different output character) is strong."
+          }
+        ],
+        "rationale": "Strong mapping. Camera body selection is understood by mixed audiences. The metaphor explains why checkpoint matters (it's the tool choice). Weakness: a camera body doesn't alter what you photograph in the same way a checkpoint alters generation, but the explanatory power compensates."
+      },
+      {
+        "knotType": "CLIPTextEncode",
+        "metaphorElement": "Positive Light Setup",
+        "elementFit": 7,
+        "inputOutputFit": 8,
+        "overallMappingScore": 7.5,
+        "attributeScores": [
+          {
+            "parameterName": "text",
+            "metaphorControl": "Text Input: Describe the Scene",
+            "explanatoryPower": 9,
+            "truthfulness": 6,
+            "intuitiveness": 8,
+            "rationale": "Text input is preserved (high truth). Mapping text to 'lighting description' is slightly loose (truthfulness 6) because text prompts are linguistic, not visual. But the 'positive = illuminate' concept is intuitive (8). Users understand they're describing what they want to see."
+          }
+        ],
+        "rationale": "Decent mapping with a key strength: text input remains textual (users type words). The 'positive = light = emphasize' metaphor is intuitive. Weakness: the mapping isn't literally true (prompts aren't lighting), but it's explanatory enough."
+      },
+      {
+        "knotType": "CLIPTextEncode",
+        "metaphorElement": "Negative Light Blocker",
+        "elementFit": 6,
+        "inputOutputFit": 8,
+        "overallMappingScore": 7,
+        "attributeScores": [
+          {
+            "parameterName": "text",
+            "metaphorControl": "Text Input: Block These Elements",
+            "explanatoryPower": 8,
+            "truthfulness": 5,
+            "intuitiveness": 7,
+            "rationale": "Text input preserved. 'Blocking light' → 'preventing appearance' is intuitive (7). Truthfulness is 5 because the actual mechanism (prompt rejection) isn't literal light blocking. But the control is clear: describe what NOT to show."
+          }
+        ],
+        "rationale": "Creative mapping. The 'negative = block' concept makes intuitive sense. Truthfulness drops because text input doesn't literally control light blockers. Explanatory power is good — users understand 'block' as exclusion."
+      },
+      {
+        "knotType": "EmptyLatentImage",
+        "metaphorElement": "Blank Film Stock / Exposure Setup",
+        "elementFit": 8,
+        "inputOutputFit": 9,
+        "overallMappingScore": 8.5,
+        "attributeScores": [
+          {
+            "parameterName": "width",
+            "metaphorControl": "Frame Width Slider",
+            "explanatoryPower": 9,
+            "truthfulness": 8,
+            "intuitiveness": 9,
+            "rationale": "Width as frame width is direct and intuitive. Truthful because pixel dimensions are literally frame dimensions. Sliders are natural for photographers adjusting frame size."
+          },
+          {
+            "parameterName": "height",
+            "metaphorControl": "Frame Height Slider",
+            "explanatoryPower": 9,
+            "truthfulness": 8,
+            "intuitiveness": 9,
+            "rationale": "Same as width — direct mapping, familiar control type."
+          },
+          {
+            "parameterName": "batch_size",
+            "metaphorControl": "Number of Shots Slider",
+            "explanatoryPower": 9,
+            "truthfulness": 9,
+            "intuitiveness": 9,
+            "rationale": "Batch size as number of film frames is direct and truthful. Photographers understand 'take 4 shots.' Sliders feel natural for this count."
+          }
+        ],
+        "rationale": "Excellent mapping. Latent space is abstracted as film stock (acceptable because both are blank canvases). All controls are intuitive, truthful, and well-explained. This is the strongest knot mapping in the metaphor."
+      },
+      {
+        "knotType": "KSampler",
+        "metaphorElement": "Exposure & Development Process",
+        "elementFit": 8,
+        "inputOutputFit": 7,
+        "overallMappingScore": 7.5,
+        "attributeScores": [
+          {
+            "parameterName": "seed",
+            "metaphorControl": "Shutter Moment Slider",
+            "explanatoryPower": 8,
+            "truthfulness": 7,
+            "intuitiveness": 8,
+            "rationale": "Seed as shutter timing is creative and intuitive. Truthfulness is 7 (seed doesn't literally control shutter timing, but 'each moment is different' is accurate). Photographers understand continuous shooting and frame selection."
+          },
+          {
+            "parameterName": "steps",
+            "metaphorControl": "Development Time Slider",
+            "explanatoryPower": 9,
+            "truthfulness": 8,
+            "intuitiveness": 9,
+            "rationale": "Steps as development time is strong. More steps → more refinement, like longer development bringing out detail. Truthful analogy. Intuitive for photography enthusiasts."
+          },
+          {
+            "parameterName": "cfg",
+            "metaphorControl": "Exposure Compensation Slider",
+            "explanatoryPower": 8,
+            "truthfulness": 7,
+            "intuitiveness": 8,
+            "rationale": "CFG as exposure compensation is a decent metaphor — both control how 'bright' or 'guided' the result is. Truthfulness is 7 because CFG actually controls prompt adherence, not literal brightness. But the control behavior feels natural."
+          },
+          {
+            "parameterName": "sampler_name",
+            "metaphorControl": "Development Profile Dropdown",
+            "explanatoryPower": 7,
+            "truthfulness": 6,
+            "intuitiveness": 7,
+            "rationale": "Sampler as development chemistry is creative. Different samplers do produce different characteristics. Truthfulness is 6 (not a literal chemistry analogy). Intuitiveness is decent for photography enthusiasts, lower for others."
+          },
+          {
+            "parameterName": "scheduler",
+            "metaphorControl": "Development Curve Dropdown",
+            "explanatoryPower": 6,
+            "truthfulness": 5,
+            "intuitiveness": 5,
+            "rationale": "Scheduler as development methodology is more abstract. The mapping is looser here. Truthfulness is low because scheduler controls diffusion progression, not actual agitation. Intuitiveness is 5 — most users don't understand development curves."
+          },
+          {
+            "parameterName": "denoise",
+            "metaphorControl": "Partial Development Slider",
+            "explanatoryPower": 7,
+            "truthfulness": 6,
+            "intuitiveness": 6,
+            "rationale": "Denoise as early pulling from developer is creative. The concept is intuitive to photographers (stopping development early reduces contrast). Truthfulness is moderate — denoise is actually about noise reduction steps, not developer time."
+          }
+        ],
+        "rationale": "Strong core mapping with good metaphorical coverage. Steps and development time map excellently (8-9). Seed, CFG, and sampler are decent (7-8). Scheduler and denoise are weaker (5-6) but still functional. The overall metaphor of 'exposure and development' is strong for the generation process."
+      },
+      {
+        "knotType": "VAEDecode",
+        "metaphorElement": "Drying & Fixing (Stabilization)",
+        "elementFit": 6,
+        "inputOutputFit": 6,
+        "overallMappingScore": 6,
+        "attributeScores": [],
+        "rationale": "Weaker mapping because VAE parameters are hidden. The metaphor of 'fixing and drying' is intuitive for the final stabilization step, but users don't interact with this knot directly. ElementFit is 6 because VAE decoding isn't literally fixing and drying — it's neural decompression — but the metaphor of 'stabilizing' is acceptable."
+      },
+      {
+        "knotType": "SaveImage",
+        "metaphorElement": "Printing & Storage",
+        "elementFit": 9,
+        "inputOutputFit": 9,
+        "overallMappingScore": 9,
+        "attributeScores": [
+          {
+            "parameterName": "filename_prefix",
+            "metaphorControl": "Print Label / Archive Reference",
+            "explanatoryPower": 9,
+            "truthfulness": 9,
+            "intuitiveness": 9,
+            "rationale": "Filename as print label is direct, truthful, and intuitive. Users understand naming the output. Highest-scoring attribute."
+          }
+        ],
+        "rationale": "Excellent mapping. Saving/printing is intuitive and literal. Filename becomes an archive reference, which photographers understand naturally."
+      }
+    ],
+    "ioAnalysis": {
+      "textInputHandling": 9,
+      "modelInputHandling": 9,
+      "intermediateHandling": 7,
+      "finalOutputHandling": 8,
+      "rationale": "Text input: Excellent (9). Both positive and negative prompts remain explicitly textual — users type words, not abstract selections. This preserves capability and clarity. Model input: Excellent (9). Camera body selection is intuitive and handles checkpoint loading clearly. Intermediate handling: Good (7). Latent space as 'developing negative' and VAE as 'fixing' are metaphorical but functional. The flow makes sense conceptually. Final output: Good (8). The output IS an image (print), and the metaphor produces something visual (photograph). Slight loss of precision because a 'print' isn't technically an image file, but the output is viewable and meaningful."
+    }
+  },
+  "scores": {
+    "explanatoryPower": 8,
+    "truthfulness": 7,
+    "completeness": 9,
+    "intuitiveInteraction": 8,
+    "fractalConsistency": 8,
+    "overall": 7.95,
+    "rationale": "The Darkroom Photography Studio is a strong, comprehensive metaphor. Explanatory power (8): Nearly every knot has an intuitive mapping (camera selection, lighting, film stock, development, fixing, printing). Five of six parameter controls score 7-9 on explanatory power. Truthfulness (7): Text inputs are preserved (9/10). Model selection is truthful (8/10). Development/exposure controls map well to actual parameters (7-8/10). Scheduler and denoise are looser metaphors (5-6/10), pulling the average down. Overall truthfulness is solid but not perfect. Completeness (9): All seven knots are mapped. Six of seven have detailed facade controls. Only VAE decode lacks interactive controls, which is acceptable since VAE parameters are typically hidden. Intuitive interaction (8): Sliders for dimensions, dropdowns for selections, text for prompts, and the development process feel natural. Photographers will find this immediately accessible; non-photographers may need brief orientation to sampler/scheduler. Fractal consistency (8): The metaphor is uniform — every knot fits within a darkroom studio workflow. There's good consistency in how data flows (light rays, chemicals, negatives, prints). Variance is low except for the scheduler/denoise pair, which are more abstract. Key strengths: Text input remains textual, preserving user capability. The core generation (KSampler as development) is intuitive. The overall scene is cohesive and familiar to many. Key weaknesses: Scheduler and denoise are relatively abstract (5-6). VAE is somewhat opaque. The metaphor is photography-biased, so non-photographers may need more explanation. However, for mixed audiences, photography is reasonably universal."
+  }
+}
