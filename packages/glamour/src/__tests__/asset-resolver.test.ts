@@ -67,7 +67,25 @@ describe('GlamourAssetResolver', () => {
     expect(result.asset).toBe(asset)
   })
 
-  it('falls back to type default when no exact match', () => {
+  it('falls back to instance match when no exact hash match', () => {
+    const asset = { type: 'image' as const, url: '/instance.png', hash: 'prompt-hash' }
+    resolver.register('KSampler_k1', asset)
+    const result = resolver.resolve('k1', 'KSampler', 'different-config-hash', 'loom')
+    expect(result.fallbackLevel).toBe('instance')
+    expect(result.asset).toBe(asset)
+  })
+
+  it('prefers exact hash over instance match', () => {
+    const exactAsset = { type: 'image' as const, url: '/exact.png', hash: 'abc123' }
+    const instanceAsset = { type: 'image' as const, url: '/instance.png', hash: 'xxx' }
+    resolver.register('KSampler_k1_abc123', exactAsset)
+    resolver.register('KSampler_k1', instanceAsset)
+    const result = resolver.resolve('k1', 'KSampler', 'abc123', 'loom')
+    expect(result.fallbackLevel).toBe('exact')
+    expect(result.asset).toBe(exactAsset)
+  })
+
+  it('falls back to type default when no exact or instance match', () => {
     const asset = { type: 'svg' as const, url: '/ksampler.svg', hash: '' }
     resolver.register('loom_KSampler', asset)
     const result = resolver.resolve('k1', 'KSampler', 'xyz', 'loom')

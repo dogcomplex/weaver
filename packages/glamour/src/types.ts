@@ -154,6 +154,17 @@ export interface GlamourElement {
   size: { width: number; height: number }
   /** How many levels of unveiling are possible below this glamour */
   depth: number
+  /** Animation hints from the Loci manifest (natural language descriptions) */
+  animationHints?: {
+    /** Idle animation: "Gentle bobbing, steam rising" */
+    idle?: string
+    /** Active/processing animation: "Rapid bubbling, lid rattling" */
+    active?: string
+    /** Transition animation: "Fade through smoke" */
+    transition?: string
+  }
+  /** Interaction style from the Loci manifest */
+  interactionStyle?: 'static' | 'hover-reveal' | 'click-cycle' | 'drag-control' | 'animated-idle'
 }
 
 /** Visual representation of a glamoured thread */
@@ -324,5 +335,5 @@ export interface GlamourAsset {
 export interface AssetResolution {
   asset: GlamourAsset
   /** Which level of the fallback chain was used */
-  fallbackLevel: 'exact' | 'type' | 'theme' | 'aurora'
+  fallbackLevel: 'exact' | 'instance' | 'type' | 'theme' | 'aurora'
 }

@@ -193,7 +193,7 @@ export interface MetaphorThreadStyle {
   /** Metaphorical description: "ingredients flowing between stations" */
   metaphor: string
   /** Color map for data types */
-  colorMap: Record<string, { color: string; width: number; style: 'solid' | 'dashed' | 'animated' }>
+  colorMap: Record<string, { color: string; width: number; style: 'solid' | 'dashed' | 'animated'; label?: string }>
 }
 
 // ─── Scoring: The 5 evaluation criteria ──────────────────────────

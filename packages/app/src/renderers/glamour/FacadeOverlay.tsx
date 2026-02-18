@@ -53,11 +53,12 @@ interface FacadeOverlayProps {
   facadeData: Map<KnotId, { element: GlamourElement; worldX: number; worldY: number }>
   weave: Weave
   onWeaveAction: (action: WeaveAction) => void
+  hoveredKnotIds: Set<KnotId>
 }
 
 // ─── Component ──────────────────────────────────────────────────
 
-export function FacadeOverlay({ facadeData, weave, onWeaveAction }: FacadeOverlayProps) {
+export function FacadeOverlay({ facadeData, weave, onWeaveAction, hoveredKnotIds }: FacadeOverlayProps) {
   const updateKnotData = useCallback((knotId: KnotId, dataPath: string, value: unknown) => {
     onWeaveAction({
       type: 'updateKnot',
@@ -71,6 +72,14 @@ export function FacadeOverlay({ facadeData, weave, onWeaveAction }: FacadeOverla
 
     for (const [knotId, { element, worldX, worldY }] of facadeData) {
       if (!element.facade) continue
+
+      // hover-reveal: only show facades when hovered (or drag-control which behaves similarly)
+      const style = element.interactionStyle ?? 'hover-reveal'
+      if ((style === 'hover-reveal' || style === 'drag-control') && !hoveredKnotIds.has(knotId)) {
+        continue
+      }
+      // static: never show facades
+      if (style === 'static') continue
 
       for (const control of element.facade.controls) {
         const cx = worldX + (control.position.x - 0.5) * element.size.width
@@ -157,7 +166,7 @@ export function FacadeOverlay({ facadeData, weave, onWeaveAction }: FacadeOverla
           // ─── Select ─────────────────────────────────────────
           case 'select': {
             const currentVal = (getValue() as string) ?? ''
-            const options = control.binding.options ?? []
+            const options = Array.isArray(control.binding.options) ? control.binding.options : []
             result.push(
               <div key={key} style={controlWrapperStyle(cx, cy, -50, -10)}>
                 <span style={LABEL_STYLE}>{control.label}</span>
@@ -334,7 +343,7 @@ export function FacadeOverlay({ facadeData, weave, onWeaveAction }: FacadeOverla
     }
 
     return result
-  }, [facadeData, weave, updateKnotData])
+  }, [facadeData, weave, updateKnotData, hoveredKnotIds])
 
   return <>{overlays}</>
 }

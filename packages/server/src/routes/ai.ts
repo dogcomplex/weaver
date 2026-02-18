@@ -991,6 +991,37 @@ router.post('/glamour/manifests/deactivate', async (_req, res) => {
 })
 
 /**
+ * DELETE /api/ai/glamour/manifests
+ * Delete ALL saved manifest files and deactivate any active theme.
+ */
+router.delete('/glamour/manifests', async (_req, res) => {
+  try {
+    const entries = await fs.readdir(MANIFESTS_DIR).catch(() => [] as string[])
+    const jsonFiles = entries.filter(f => f.endsWith('.json'))
+    let deleted = 0
+    for (const file of jsonFiles) {
+      try {
+        await fs.unlink(path.join(MANIFESTS_DIR, file))
+        deleted++
+      } catch {
+        // skip files that vanished between readdir and unlink
+      }
+    }
+    // Deactivate any active theme
+    broadcast({
+      type: 'glamour-theme-changed',
+      manifestId: null,
+      manifest: null,
+    })
+    setActiveManifestId(null)
+    log.info({ deleted }, 'All manifests deleted — reverted to LoomTheme')
+    res.json({ success: true, deleted })
+  } catch (err: any) {
+    res.status(500).json({ error: err.message ?? 'Failed to delete manifests' })
+  }
+})
+
+/**
  * DELETE /api/ai/glamour/manifests/:id
  * Delete a saved manifest file.
  */

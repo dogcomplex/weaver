@@ -139,6 +139,21 @@ export function ThemeSelector({ activeManifest, weaveId }: ThemeSelectorProps) {
     setOpen(false)
   }, [])
 
+  // Reset all — delete every manifest and deactivate
+  const resetAll = useCallback(async () => {
+    try {
+      const res = await fetch('/api/ai/glamour/manifests', { method: 'DELETE' })
+      if (res.ok) {
+        setManifests([])
+        setExpandedId(null)
+        setExpandedManifest(null)
+        // Theme deactivation happens via WebSocket broadcast from server
+      }
+    } catch {
+      // Reset failed
+    }
+  }, [])
+
   // Delete a manifest
   const deleteManifest = useCallback(async (id: string) => {
     try {
@@ -231,14 +246,25 @@ export function ThemeSelector({ activeManifest, weaveId }: ThemeSelectorProps) {
             <span style={{ fontSize: 9, color: '#6a6a9a', fontWeight: 600, letterSpacing: '0.5px', textTransform: 'uppercase' }}>
               Glamour Themes
             </span>
-            {activeManifest && (
-              <button
-                onClick={deactivate}
-                style={revertBtnStyle}
-              >
-                Revert to Default
-              </button>
-            )}
+            <div style={{ display: 'flex', gap: 4 }}>
+              {manifests.length > 0 && (
+                <button
+                  onClick={resetAll}
+                  style={resetAllBtnStyle}
+                  title="Delete all saved themes"
+                >
+                  Reset All
+                </button>
+              )}
+              {activeManifest && (
+                <button
+                  onClick={deactivate}
+                  style={revertBtnStyle}
+                >
+                  Revert to Default
+                </button>
+              )}
+            </div>
           </div>
 
           {/* List */}
@@ -349,6 +375,13 @@ export function ThemeSelector({ activeManifest, weaveId }: ThemeSelectorProps) {
                         </div>
                       )}
 
+                      {/* Wave metaphor */}
+                      {expandedManifest.waveMetaphor && (
+                        <div style={{ fontSize: 8, color: '#6a6a9a', fontStyle: 'italic', marginBottom: 4 }}>
+                          Wave flow: {expandedManifest.waveMetaphor}
+                        </div>
+                      )}
+
                       {/* Mapping summary */}
                       <div style={{ fontSize: 8, color: '#5a5a8a', marginBottom: 6 }}>
                         {expandedManifest.mappings.length} element{expandedManifest.mappings.length !== 1 ? 's' : ''} mapped
@@ -414,6 +447,16 @@ const revertBtnStyle: React.CSSProperties = {
   border: '1px solid #2a2a4e',
   borderRadius: 3,
   color: '#6a6a9a',
+  fontSize: 8,
+  padding: '2px 6px',
+  cursor: 'pointer',
+}
+
+const resetAllBtnStyle: React.CSSProperties = {
+  background: 'none',
+  border: '1px solid #4a2020',
+  borderRadius: 3,
+  color: '#f87171',
   fontSize: 8,
   padding: '2px 6px',
   cursor: 'pointer',

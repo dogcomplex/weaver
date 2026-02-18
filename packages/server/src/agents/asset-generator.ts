@@ -298,6 +298,10 @@ export async function generateAsset(
     // Ensure resolver knows about cached assets too
     const resolverKey = knotId ? `${knotType}_${knotId}_${hash}` : `${knotType}_${hash}`
     serverAssetResolver.register(resolverKey, { type: 'image', url, hash })
+    // Also register under instance key (knotType_knotId) so frontend resolve() finds it
+    if (knotId) {
+      serverAssetResolver.register(`${knotType}_${knotId}`, { type: 'image', url, hash })
+    }
     // Also broadcast so live renderers can hot-swap immediately
     if (knotId) {
       broadcast({ type: 'glamour-asset', knotId, hash, url })
@@ -367,6 +371,10 @@ export async function generateAsset(
       // Register in server-side resolver for frontend hydration
       const resolverKey = knotId ? `${knotType}_${knotId}_${hash}` : `${knotType}_${hash}`
       serverAssetResolver.register(resolverKey, { type: 'image', url, hash })
+      // Also register under instance key (knotType_knotId) so frontend resolve() finds it
+      if (knotId) {
+        serverAssetResolver.register(`${knotType}_${knotId}`, { type: 'image', url, hash })
+      }
       log.info({ resolverKey }, 'Glamour asset: registered in resolver')
     }
 
@@ -419,6 +427,10 @@ export async function generateManifestAssets(
       // Register cached asset in resolver so hydration endpoint returns it
       const resolverKey = knotId ? `${mapping.knotType}_${knotId}_${hash}` : `${mapping.knotType}_${hash}`
       serverAssetResolver.register(resolverKey, { type: 'image', url, hash })
+      // Also register under instance key (knotType_knotId) so frontend resolve() finds it
+      if (knotId) {
+        serverAssetResolver.register(`${mapping.knotType}_${knotId}`, { type: 'image', url, hash })
+      }
       // Also register type-level key so duplicate knots of same type resolve
       serverAssetResolver.register(`${manifest.id}_${mapping.knotType}`, { type: 'image', url, hash })
       // Broadcast so live renderers can hot-swap immediately

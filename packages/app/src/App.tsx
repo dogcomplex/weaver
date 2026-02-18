@@ -12,6 +12,7 @@ import { ErrorBoundary } from './components/ErrorBoundary.js'
 import { WeaveProvider, useWeave } from './hooks/useWeave.js'
 import { useSelection } from './hooks/useSelection.js'
 import { useWaveAnimation } from './hooks/useWaveAnimation.js'
+import { useWeaveWebSocket } from './hooks/useWeaveWebSocket.js'
 import type { WeaveAction, Selection, ViewMode, MetaphorManifest } from '#weaver/glamour'
 
 interface QueueResult {
@@ -35,23 +36,17 @@ function AppInner() {
   // Active manifest theme from AI (null = use default LoomTheme)
   const [activeManifest, setActiveManifest] = useState<MetaphorManifest | null>(null)
 
-  // WebSocket listener for glamour theme changes
+  // Shared WebSocket connection — single connection for the entire app
+  const { subscribe } = useWeaveWebSocket()
+
+  // Subscribe to glamour theme changes via shared WebSocket
   useEffect(() => {
-    const ws = new WebSocket(`ws://${window.location.hostname}:4444/ws`)
-
-    ws.onmessage = (event) => {
-      try {
-        const msg = JSON.parse(event.data)
-        if (msg.type === 'glamour-theme-changed') {
-          setActiveManifest(msg.manifest ?? null)
-        }
-      } catch {
-        // Ignore parse errors
+    return subscribe((msg) => {
+      if (msg.type === 'glamour-theme-changed') {
+        setActiveManifest((msg.manifest as MetaphorManifest) ?? null)
       }
-    }
-
-    return () => { ws.close() }
-  }, [])
+    })
+  }, [subscribe])
 
   // Wave animation: auto-plays when trace result changes
   const { animationState } = useWaveAnimation(traceResult)
@@ -117,7 +112,7 @@ function AppInner() {
               <ComfyUIRenderer {...rendererProps} />
             )}
             {viewMode === 'glamour' && (
-              <GlamourRenderer {...rendererProps} activeManifest={activeManifest} />
+              <GlamourRenderer {...rendererProps} activeManifest={activeManifest} wsSubscribe={subscribe} />
             )}
           </ErrorBoundary>
           {traceResult && (

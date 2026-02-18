@@ -18,11 +18,14 @@ import type { WeaveRendererProps, GlamourElement } from '#weaver/glamour'
 import type { KnotId } from '#weaver/core'
 import { LoomTheme, ManifestTheme, buildKnotIdMap } from '#weaver/glamour'
 import type { EnchantContext, MetaphorManifest } from '#weaver/glamour'
+import type { WebSocketListener } from '../../hooks/useWeaveWebSocket.js'
 
 import { usePixiApp } from './usePixiApp.js'
 import { useGlamourCamera } from './useGlamourCamera.js'
 import { useGlamourAssets } from './useGlamourAssets.js'
 import { useGlamourScene } from './useGlamourScene.js'
+import { useIdleAnimations } from './useIdleAnimations.js'
+import { useAmbientEffects } from './useAmbientEffects.js'
 import { FacadeOverlay } from './FacadeOverlay.js'
 import { GlamourStatusBar } from './GlamourStatusBar.js'
 import { ContextMenu, type ContextMenuState } from './ContextMenu.js'
@@ -32,6 +35,7 @@ import { Minimap } from './Minimap.js'
 
 interface GlamourRendererExtraProps extends WeaveRendererProps {
   activeManifest?: MetaphorManifest | null
+  wsSubscribe?: (listener: WebSocketListener) => () => void
 }
 
 // ─── Component ───────────────────────────────────────────────────
@@ -43,11 +47,13 @@ export function GlamourRenderer({
   onWeaveAction,
   onSelectionChange,
   activeManifest,
+  wsSubscribe,
 }: GlamourRendererExtraProps) {
   // ─── Local state ────────────────────────────────────────────
   const [unveiledKnots, setUnveiledKnots] = useState<Set<KnotId>>(new Set())
   const [facadeData, setFacadeData] = useState<Map<KnotId, { element: GlamourElement; worldX: number; worldY: number }>>(new Map())
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null)
+  const [hoveredKnotIds, setHoveredKnotIds] = useState<Set<KnotId>>(new Set())
 
   // ─── PixiJS application lifecycle + refs ────────────────────
   const pixi = usePixiApp()
@@ -58,6 +64,7 @@ export function GlamourRenderer({
     knotSpritesRef: pixi.knotSpritesRef,
     sceneBgContainerRef: pixi.sceneBgContainerRef,
     appRef: pixi.appRef,
+    wsSubscribe,
   })
 
   // ─── Theme instance ─────────────────────────────────────────
@@ -115,15 +122,44 @@ export function GlamourRenderer({
     onSelectionChange({ type: 'knot', id: knotId })
   }, [onSelectionChange])
 
+  const handleHoverChange = useCallback((knotId: KnotId, hovered: boolean) => {
+    setHoveredKnotIds(prev => {
+      const next = new Set(prev)
+      if (hovered) {
+        next.add(knotId)
+      } else {
+        next.delete(knotId)
+      }
+      return next
+    })
+  }, [])
+
   const handleContextMenuDelete = useCallback((knotId: KnotId) => {
     onWeaveAction({ type: 'cut', knotId })
     onSelectionChange(null)
   }, [onWeaveAction, onSelectionChange])
 
+  // ─── Idle animations from animationHints ────────────────────
+  useIdleAnimations({
+    knotSpritesRef: pixi.knotSpritesRef,
+    addTickerCallback: pixi.addTickerCallback,
+    removeTickerCallback: pixi.removeTickerCallback,
+  })
+
+  // ─── Ambient scene effects from ambientDescription ─────────
+  useAmbientEffects({
+    sceneBgContainerRef: pixi.sceneBgContainerRef,
+    appRef: pixi.appRef,
+    addTickerCallback: pixi.addTickerCallback,
+    removeTickerCallback: pixi.removeTickerCallback,
+    ambientDescription: theme.sceneConfig.ambientDescription,
+  })
+
   // ─── Scene synchronization ──────────────────────────────────
   useGlamourScene({
     weave,
     theme,
+    assetResolver,
     enchantContext,
     selection,
     animationState,
@@ -143,6 +179,7 @@ export function GlamourRenderer({
     cameraRef: pixi.cameraRef,
     setFacadeData,
     setContextMenu,
+    onHoverChange: handleHoverChange,
   })
 
   // ─── Render ─────────────────────────────────────────────────
@@ -164,7 +201,7 @@ export function GlamourRenderer({
       {/* Facade HTML overlays — CSS transform mirrors PixiJS world container */}
       <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, pointerEvents: 'none', zIndex: 10, overflow: 'hidden' }}>
         <div ref={pixi.facadeContainerRef} style={{ transformOrigin: '0 0', pointerEvents: 'none' }}>
-          <FacadeOverlay facadeData={facadeData} weave={weave} onWeaveAction={onWeaveAction} />
+          <FacadeOverlay facadeData={facadeData} weave={weave} onWeaveAction={onWeaveAction} hoveredKnotIds={hoveredKnotIds} />
         </div>
       </div>
 

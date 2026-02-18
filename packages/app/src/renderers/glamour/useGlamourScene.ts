@@ -10,14 +10,18 @@ import { Container, Graphics, Text, Sprite, Texture, Rectangle, type FederatedPo
 import type { Weave, KnotId } from '#weaver/core'
 import type { GlamourTheme, EnchantContext, GlamourElement, AnimationState } from '#weaver/glamour'
 import type { Selection, WeaveAction } from '#weaver/glamour'
+import type { GlamourAssetResolver } from '#weaver/glamour'
+import { hashKnotConfig } from '#weaver/glamour'
 import type { KnotSprite, ThreadGraphic } from './types.js'
 import { VISUAL_LABELS, SELECTED_TINT } from './types.js'
-import { LABEL_STYLE, loadSvgTexture, loadSpriteTexture, renderFallbackVisual, drawThread } from './helpers.js'
+import { LABEL_STYLE, THREAD_LABEL_STYLE, loadSvgTexture, loadSpriteTexture, renderFallbackVisual, drawThread } from './helpers.js'
 import type { ContextMenuState } from './ContextMenu.js'
 
 interface UseGlamourSceneOptions {
   weave: Weave
   theme: GlamourTheme
+  /** Asset resolver for re-checking pending knots after hydration */
+  assetResolver: GlamourAssetResolver | null
   enchantContext: EnchantContext
   selection: Selection | null
   animationState: AnimationState | null
@@ -37,11 +41,13 @@ interface UseGlamourSceneOptions {
   cameraRef: React.MutableRefObject<{ x: number; y: number; zoom: number }>
   setFacadeData: React.Dispatch<React.SetStateAction<Map<KnotId, { element: GlamourElement; worldX: number; worldY: number }>>>
   setContextMenu: React.Dispatch<React.SetStateAction<ContextMenuState | null>>
+  onHoverChange: (knotId: KnotId, hovered: boolean) => void
 }
 
 export function useGlamourScene({
   weave,
   theme,
+  assetResolver,
   enchantContext,
   selection,
   animationState,
@@ -61,6 +67,7 @@ export function useGlamourScene({
   cameraRef,
   setFacadeData,
   setContextMenu,
+  onHoverChange,
 }: UseGlamourSceneOptions) {
 
   // Update facade overlay positions (world coordinates — CSS transform handles camera)
@@ -102,8 +109,41 @@ export function useGlamourScene({
         ks.element = element
 
         // Update label text
-        const label = ks.container.getChildByLabel('label') as Text | null
-        if (label) label.text = element.label
+        const labelChild = ks.container.getChildByLabel('label') as Text | null
+        if (labelChild) labelChild.text = element.label
+
+        // Re-check pending knots when asset resolver becomes available after hydration
+        // This fixes the tab-switch blank issue: on remount, resolver starts null,
+        // scene renders knots with 'generated' fallback, then resolver arrives and
+        // we need to hot-swap the pending knots with their cached assets.
+        if (ks.container.label.endsWith(':pending') && assetResolver) {
+          const themeId = theme.id
+          const resolution = assetResolver.resolve(knotId, knot.type, hashKnotConfig(knot), themeId)
+          if (resolution.fallbackLevel !== 'aurora') {
+            // Remove fallback visual and load the real asset
+            for (let i = ks.container.children.length - 1; i >= 0; i--) {
+              const child = ks.container.children[i]
+              if (VISUAL_LABELS.has(child.label)) {
+                ks.container.removeChild(child)
+                child.destroy()
+              }
+            }
+            const url = resolution.asset.url
+            const capturedSize = element.size
+            knotPromises.push(
+              loadSpriteTexture(url).then(texture => {
+                if (texture === Texture.EMPTY) return
+                const sprite = new Sprite(texture)
+                sprite.label = 'sprite-asset'
+                sprite.anchor.set(0.5, 0.5)
+                sprite.width = capturedSize.width
+                sprite.height = capturedSize.height
+                ks.container.addChildAt(sprite, 1)
+              })
+            )
+            ks.container.label = `knot-${knotId}`  // no longer pending
+          }
+        }
 
         // If visual type changed (e.g. 'generated' → 'sprite' after hydration),
         // swap out the visual content
@@ -169,7 +209,7 @@ export function useGlamourScene({
           element.size.height + 20,
         )
 
-        // Click handler for selection + unveil
+        // Click handler for selection + unveil + click-cycle
         knotContainer.on('pointerdown', (e: FederatedPointerEvent) => {
           pixiClickedRef.current = true
           if (e.altKey) {
@@ -184,16 +224,39 @@ export function useGlamourScene({
             })
           } else {
             onSelectionChange({ type: 'knot', id: knotId })
+            // click-cycle: cycle through tint colors on each click
+            if (interactionStyle === 'click-cycle') {
+              const ks = existingKnots.get(knotId)
+              if (ks) {
+                const CYCLE_TINTS = [0xffffff, 0x6a6aff, 0x4af0ff, 0xff6a9a, 0x6aff6a]
+                ks.cycleIndex = ((ks.cycleIndex ?? 0) + 1) % CYCLE_TINTS.length
+                for (const child of ks.container.children) {
+                  if (child instanceof Sprite) {
+                    child.tint = CYCLE_TINTS[ks.cycleIndex]
+                  }
+                }
+              }
+            }
           }
           e.stopPropagation()
         })
 
-        // Hover shimmer — subtle glow hinting at unveilability
+        // Hover behavior varies by interactionStyle
+        const interactionStyle = element.interactionStyle ?? 'hover-reveal'
         knotContainer.on('pointerover', () => {
+          const ks = existingKnots.get(knotId)
+          if (ks) ks.hovered = true
+          onHoverChange(knotId, true)
+          if (interactionStyle === 'static') return
           const shimmer = knotContainer.getChildByLabel('shimmer') as Graphics | null
-          if (shimmer) shimmer.alpha = 0.35
+          if (shimmer) {
+            shimmer.alpha = interactionStyle === 'animated-idle' ? 0.5 : 0.35
+          }
         })
         knotContainer.on('pointerout', () => {
+          const ks = existingKnots.get(knotId)
+          if (ks) ks.hovered = false
+          onHoverChange(knotId, false)
           const shimmer = knotContainer.getChildByLabel('shimmer') as Graphics | null
           if (shimmer) shimmer.alpha = 0
         })
@@ -329,23 +392,62 @@ export function useGlamourScene({
 
       const connection = theme.enchantThread(thread, sourceKnot, targetKnot, enchantContext)
 
+      // Midpoint for thread label
+      const midX = (sourceKnot.position.x + targetKnot.position.x) / 2
+      const midY = (sourceKnot.position.y + targetKnot.position.y) / 2
+
       if (existingThreads.has(threadId)) {
         const tg = existingThreads.get(threadId)!
         drawThread(tg.graphic, sourceKnot.position, targetKnot.position, connection)
         tg.connection = connection
         tg.sourcePos = sourceKnot.position
         tg.targetPos = targetKnot.position
+
+        // Update thread label position + text
+        if (tg.labelText) {
+          if (connection.label) {
+            tg.labelText.text = connection.label
+            tg.labelText.x = midX
+            tg.labelText.y = midY - 8
+          } else {
+            // Remove label if connection no longer has one
+            world.removeChild(tg.labelText)
+            tg.labelText.destroy()
+            tg.labelText = undefined
+          }
+        } else if (connection.label) {
+          const threadLabel = new Text({ text: connection.label, style: THREAD_LABEL_STYLE })
+          threadLabel.label = `thread-label-${threadId}`
+          threadLabel.anchor.set(0.5, 1)
+          threadLabel.x = midX
+          threadLabel.y = midY - 8
+          world.addChild(threadLabel)
+          tg.labelText = threadLabel
+        }
       } else {
         const graphic = new Graphics()
         graphic.label = `thread-${threadId}`
         drawThread(graphic, sourceKnot.position, targetKnot.position, connection)
         world.addChildAt(graphic, 0)
+
+        // Create thread label at midpoint
+        let labelText: Text | undefined
+        if (connection.label) {
+          labelText = new Text({ text: connection.label, style: THREAD_LABEL_STYLE })
+          labelText.label = `thread-label-${threadId}`
+          labelText.anchor.set(0.5, 1)
+          labelText.x = midX
+          labelText.y = midY - 8
+          world.addChild(labelText)
+        }
+
         existingThreads.set(threadId, {
           threadId,
           graphic,
           connection,
           sourcePos: sourceKnot.position,
           targetPos: targetKnot.position,
+          labelText,
         })
       }
     }
@@ -355,6 +457,10 @@ export function useGlamourScene({
       if (!currentThreadIds.has(threadId)) {
         world.removeChild(tg.graphic)
         tg.graphic.destroy()
+        if (tg.labelText) {
+          world.removeChild(tg.labelText)
+          tg.labelText.destroy()
+        }
         existingThreads.delete(threadId)
       }
     }
@@ -370,8 +476,8 @@ export function useGlamourScene({
     // Update facade overlay positions + sync CSS transform
     updateFacadePositions()
     applyCamera()
-  }, [weave, enchantContext, theme, onSelectionChange, appReady, updateFacadePositions, applyCamera,
-      worldRef, knotSpritesRef, threadGraphicsRef, pixiClickedRef, setUnveiledKnots, setContextMenu, fitToView, cameraRef])
+  }, [weave, enchantContext, theme, assetResolver, onSelectionChange, appReady, updateFacadePositions, applyCamera,
+      worldRef, knotSpritesRef, threadGraphicsRef, pixiClickedRef, setUnveiledKnots, setContextMenu, onHoverChange, fitToView, cameraRef])
 
   // ─── Selection Highlight ─────────────────────────────────────
   useEffect(() => {

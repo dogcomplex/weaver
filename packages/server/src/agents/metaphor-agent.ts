@@ -181,14 +181,16 @@ Respond with a JSON array of ${count} objects. Each must have:
       "facadeControls": [
         {
           "id": "control-id",
-          "controlType": "slider" | "dropdown" | "toggle" | "text" | "color",
+          "controlType": "slider" | "select" | "toggle" | "text" | "color" | "dial" | "button" | "display",
           "label": "Control Label",
           "rationale": "Why this control type for this parameter — what makes it intuitive in this metaphor",
           "position": { "x": 0.5, "y": 0.8 },
           "binding": {
             "dataPath": "inputs.paramName",
-            "min": 0, "max": 100, "step": 1
+            "min": 0, "max": 100, "step": 1,
+            "options": [{"label": "Choice A", "value": "a"}, {"label": "Choice B", "value": "b"}]
           }
+          // For slider/dial: use min, max, step. For select: use options array (REQUIRED). For toggle/text/color: binding needs only dataPath.
         }
       ],
       "assetPrompt": "Description for AI image generation (icon-quality, 256x256)",
@@ -205,8 +207,8 @@ Respond with a JSON array of ${count} objects. Each must have:
     "colorBy": "dataType",
     "metaphor": "description of what flows between elements",
     "colorMap": {
-      "MODEL": { "color": "#hex", "width": 3, "style": "solid" },
-      "CLIP": { "color": "#hex", "width": 2, "style": "solid" }
+      "MODEL": { "color": "#hex", "width": 3, "style": "solid", "label": "Metaphorical name for this data flow" },
+      "CLIP": { "color": "#hex", "width": 2, "style": "solid", "label": "Metaphorical name for this data flow" }
     }
   },
   "waveMetaphor": "what data tokens look like moving through this metaphor",

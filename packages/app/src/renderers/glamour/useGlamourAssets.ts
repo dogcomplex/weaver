@@ -13,6 +13,7 @@ import { Application, Sprite, Texture, Container } from 'pixi.js'
 import type { KnotId } from '#weaver/core'
 import { GlamourAssetResolver } from '#weaver/glamour'
 import type { MetaphorManifest } from '#weaver/glamour'
+import type { WebSocketListener } from '../../hooks/useWeaveWebSocket.js'
 import type { KnotSprite } from './types.js'
 import { hotSwapKnotAsset, loadSpriteTexture } from './helpers.js'
 
@@ -21,9 +22,11 @@ interface UseGlamourAssetsOptions {
   knotSpritesRef: React.MutableRefObject<Map<KnotId, KnotSprite>>
   sceneBgContainerRef: React.MutableRefObject<Container | null>
   appRef: React.MutableRefObject<Application | null>
+  /** Shared WebSocket subscribe function (from useWeaveWebSocket) */
+  wsSubscribe?: (listener: WebSocketListener) => () => void
 }
 
-export function useGlamourAssets({ activeManifest, knotSpritesRef, sceneBgContainerRef, appRef }: UseGlamourAssetsOptions) {
+export function useGlamourAssets({ activeManifest, knotSpritesRef, sceneBgContainerRef, appRef, wsSubscribe }: UseGlamourAssetsOptions) {
   const [assetResolver, setAssetResolver] = useState<GlamourAssetResolver | null>(null)
   const [sceneBgUrl, setSceneBgUrl] = useState<string | null>(null)
 
@@ -110,30 +113,21 @@ export function useGlamourAssets({ activeManifest, knotSpritesRef, sceneBgContai
     }
   }, [sceneBgUrl, loadSceneBackground, sceneBgContainerRef])
 
-  // WebSocket listener for real-time asset hot-swap
+  // Subscribe to shared WebSocket for real-time asset hot-swap
   useEffect(() => {
-    const ws = new WebSocket(`ws://${window.location.hostname}:4444/ws`)
+    if (!wsSubscribe) return
 
-    ws.onmessage = (event) => {
-      try {
-        const msg = JSON.parse(event.data)
-        if (msg.type === 'glamour-asset' && msg.knotId && msg.url) {
-          hotSwapKnotAsset(knotSpritesRef.current, msg.knotId, msg.url)
-        } else if (msg.type === 'glamour-scene-bg' && msg.url) {
-          // Only accept scene-bg messages for the currently active manifest
-          if (msg.manifestId && msg.manifestId === activeManifestRef.current?.id) {
-            setSceneBgUrl(msg.url)
-          }
+    return wsSubscribe((msg) => {
+      if (msg.type === 'glamour-asset' && msg.knotId && msg.url) {
+        hotSwapKnotAsset(knotSpritesRef.current, msg.knotId as string, msg.url as string)
+      } else if (msg.type === 'glamour-scene-bg' && msg.url) {
+        // Only accept scene-bg messages for the currently active manifest
+        if (msg.manifestId && msg.manifestId === activeManifestRef.current?.id) {
+          setSceneBgUrl(msg.url as string)
         }
-      } catch {
-        // Ignore parse errors
       }
-    }
-
-    return () => {
-      ws.close()
-    }
-  }, [knotSpritesRef])
+    })
+  }, [wsSubscribe, knotSpritesRef])
 
   return { assetResolver }
 }

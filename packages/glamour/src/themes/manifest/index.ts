@@ -41,6 +41,18 @@ const DEFAULT_STROKE = '#3a3a6e'
 const DEFAULT_THREAD_COLOR = '#4a4a6a'
 const DEFAULT_THREAD_WIDTH = 2
 
+// ─── Default SVG Fallbacks (Loom theme assets as universal fallbacks) ──
+// Used when the Loci doesn't generate svgFallback in mappings (it usually doesn't).
+// Maps common ComfyUI knot types to Loom theme SVGs for a nicer fallback than color boxes.
+const DEFAULT_SVG_FALLBACKS: Record<string, string> = {
+  CheckpointLoaderSimple: '/glamour/loom/fiber-bundle.svg',
+  KSampler: '/glamour/loom/spindle.svg',
+  CLIPTextEncode: '/glamour/loom/dye-vat.svg',
+  VAEDecode: '/glamour/loom/cloth-beam.svg',
+  SaveImage: '/glamour/loom/winding-frame.svg',
+  EmptyLatentImage: '/glamour/loom/heddle-frame.svg',
+}
+
 // ─── ManifestTheme ──────────────────────────────────────────────
 
 export class ManifestTheme implements GlamourTheme {
@@ -139,6 +151,8 @@ export class ManifestTheme implements GlamourTheme {
       position: knot.position,
       size: mapping.size,
       depth: 2,
+      animationHints: mapping.animationHints,
+      interactionStyle: mapping.interactionStyle,
     }
   }
 
@@ -150,12 +164,13 @@ export class ManifestTheme implements GlamourTheme {
     _targetKnot: Knot,
     _context: EnchantContext,
   ): GlamourConnection {
-    const visual = this.resolveThreadVisual(thread, sourceKnot)
+    const { visual, colorMapLabel } = this.resolveThreadVisual(thread, sourceKnot)
 
     return {
       threadId: thread.id,
       visual,
-      label: thread.label,
+      // Prefer colorMap label (metaphorical name), fall back to thread label
+      label: colorMapLabel ?? thread.label,
     }
   }
 
@@ -273,7 +288,8 @@ export class ManifestTheme implements GlamourTheme {
         : undefined
       return {
         id: mc.id,
-        controlType: mc.controlType,
+        // Normalize 'dropdown' → 'select' for backward compat with old manifests
+        controlType: (mc.controlType as string) === 'dropdown' ? 'select' : mc.controlType,
         label: mc.label,
         position: mc.position,
         binding: {
@@ -282,7 +298,7 @@ export class ManifestTheme implements GlamourTheme {
           min: mc.binding.min,
           max: mc.binding.max,
           step: mc.binding.step,
-          options: mc.binding.options,
+          options: Array.isArray(mc.binding.options) ? mc.binding.options : undefined,
         },
       }
     })
@@ -334,31 +350,28 @@ export class ManifestTheme implements GlamourTheme {
         hash,
         this.manifest.id,
       )
-      if (resolution.fallbackLevel === 'exact' || resolution.fallbackLevel === 'type') {
+      if (resolution.fallbackLevel === 'exact' || resolution.fallbackLevel === 'instance' || resolution.fallbackLevel === 'type') {
         return { type: 'sprite', url: resolution.asset.url }
       }
     }
 
-    // Level 2: Asset prompt → generated visual with color fallback
+    // Level 2: Asset prompt → generated visual with SVG fallback (or color fallback)
     if (mapping.assetPrompt) {
-      const colorFallback: GlamourVisual = {
-        type: 'color',
-        fill: DEFAULT_FILL,
-        stroke: DEFAULT_STROKE,
-        shape: 'rect',
-      }
+      const svgPath = mapping.svgFallback ?? DEFAULT_SVG_FALLBACKS[mapping.knotType]
+      const fallback: GlamourVisual = svgPath
+        ? { type: 'svg', path: svgPath }
+        : { type: 'color', fill: DEFAULT_FILL, stroke: DEFAULT_STROKE, shape: 'rect' }
       return {
         type: 'generated',
         prompt: mapping.assetPrompt,
-        fallback: mapping.svgFallback
-          ? { type: 'svg', path: mapping.svgFallback }
-          : colorFallback,
+        fallback,
       }
     }
 
     // Level 3: SVG fallback
-    if (mapping.svgFallback) {
-      return { type: 'svg', path: mapping.svgFallback }
+    const svgPath = mapping.svgFallback ?? DEFAULT_SVG_FALLBACKS[mapping.knotType]
+    if (svgPath) {
+      return { type: 'svg', path: svgPath }
     }
 
     // Level 4: Default color
@@ -372,7 +385,7 @@ export class ManifestTheme implements GlamourTheme {
 
   // ─── Thread Visual Resolution ──────────────────────────────────
 
-  private resolveThreadVisual(thread: Thread, sourceKnot: Knot): GlamourConnectionVisual {
+  private resolveThreadVisual(thread: Thread, sourceKnot: Knot): { visual: GlamourConnectionVisual; colorMapLabel?: string } {
     const { threadStyle } = this.manifest
 
     // Determine the data type for color lookup
@@ -396,17 +409,22 @@ export class ManifestTheme implements GlamourTheme {
     const style = threadStyle.colorMap[dataType] ?? threadStyle.colorMap['*']
     if (style) {
       return {
-        color: style.color,
-        width: style.width,
-        style: style.style,
+        visual: {
+          color: style.color,
+          width: style.width,
+          style: style.style,
+        },
+        colorMapLabel: style.label,
       }
     }
 
     // Fallback
     return {
-      color: DEFAULT_THREAD_COLOR,
-      width: DEFAULT_THREAD_WIDTH,
-      style: 'solid',
+      visual: {
+        color: DEFAULT_THREAD_COLOR,
+        width: DEFAULT_THREAD_WIDTH,
+        style: 'solid',
+      },
     }
   }
 
@@ -435,7 +453,8 @@ export class ManifestTheme implements GlamourTheme {
 
     const controls: FacadeControl[] = mapping.facadeControls.map((mc: MetaphorFacadeControl) => ({
       id: mc.id,
-      controlType: mc.controlType,
+      // Normalize 'dropdown' → 'select' for backward compat with old manifests
+      controlType: (mc.controlType as string) === 'dropdown' ? 'select' : mc.controlType,
       label: mc.label,
       position: mc.position,
       binding: {
@@ -444,7 +463,7 @@ export class ManifestTheme implements GlamourTheme {
         min: mc.binding.min,
         max: mc.binding.max,
         step: mc.binding.step,
-        options: mc.binding.options,
+        options: Array.isArray(mc.binding.options) ? mc.binding.options : undefined,
       },
     }))
 

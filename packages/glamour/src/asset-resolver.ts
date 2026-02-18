@@ -63,6 +63,13 @@ export class GlamourAssetResolver {
       return { asset: exactAsset, fallbackLevel: 'exact' }
     }
 
+    // Level 1.5: Instance match (same knot, any config — matches server-registered assets)
+    const instanceKey = `${knotType}_${knotId}`
+    const instanceAsset = this.cache.get(instanceKey)
+    if (instanceAsset) {
+      return { asset: instanceAsset, fallbackLevel: 'instance' }
+    }
+
     // Level 2: Type default
     const typeKey = `${themeId}_${knotType}`
     const typeAsset = this.cache.get(typeKey)

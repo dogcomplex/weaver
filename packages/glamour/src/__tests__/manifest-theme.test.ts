@@ -182,14 +182,15 @@ describe('ManifestTheme — enchantKnot', () => {
     expect(element.veils).toContain('k1')
   })
 
-  it('returns color fallback for knot type without asset', () => {
+  it('returns SVG fallback for knot type without asset (uses Loom SVG defaults)', () => {
     const knot = makeKnot({ id: 'k1', type: 'SaveImage' })
     const weave = makeWeave([knot])
     const theme = new ManifestTheme(testManifest, new Map())
     const ctx = makeContext(theme, weave)
     const element = theme.enchantKnot(knot, ctx)
 
-    expect(element.visual.type).toBe('color')
+    // SaveImage has a default SVG fallback via DEFAULT_SVG_FALLBACKS
+    expect(element.visual.type).toBe('svg')
     expect(element.label).toBe('Serving Plate')
   })
 
@@ -208,7 +209,7 @@ describe('ManifestTheme — enchantKnot', () => {
     }
   })
 
-  it('returns generated visual with color fallback when no svg', () => {
+  it('returns generated visual with SVG fallback from default SVG map when no explicit svgFallback', () => {
     const knot = makeKnot({ id: 'k1', type: 'CheckpointLoaderSimple' })
     const weave = makeWeave([knot])
     const theme = new ManifestTheme(testManifest, new Map())
@@ -217,7 +218,8 @@ describe('ManifestTheme — enchantKnot', () => {
 
     expect(element.visual.type).toBe('generated')
     if (element.visual.type === 'generated') {
-      expect(element.visual.fallback.type).toBe('color')
+      // CheckpointLoaderSimple has a default SVG fallback via DEFAULT_SVG_FALLBACKS
+      expect(element.visual.fallback.type).toBe('svg')
     }
   })
 
