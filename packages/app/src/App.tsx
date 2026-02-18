@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect } from 'react'
 import { ClassicRenderer } from './renderers/ClassicRenderer.js'
 import { ComfyUIRenderer } from './renderers/ComfyUIRenderer.js'
-import { GlamourRenderer } from './renderers/GlamourRenderer.js'
+import { GlamourRenderer } from './renderers/glamour/index.js'
 import { Sidebar } from './components/Sidebar.js'
 import { ViewTabs } from './components/ViewTabs.js'
 import { PropertiesPanel } from './components/PropertiesPanel.js'
@@ -42,8 +42,8 @@ function AppInner() {
     ws.onmessage = (event) => {
       try {
         const msg = JSON.parse(event.data)
-        if (msg.type === 'glamour-theme-changed' && msg.manifest) {
-          setActiveManifest(msg.manifest)
+        if (msg.type === 'glamour-theme-changed') {
+          setActiveManifest(msg.manifest ?? null)
         }
       } catch {
         // Ignore parse errors

@@ -128,6 +128,156 @@ function buildTxt2ImgWorkflow(prompt: string, size = 512): Record<string, any> {
   }
 }
 
+/**
+ * Build a wider-format txt2img workflow for scene background generation.
+ * Produces a 1024x512 panoramic image for scene backdrop.
+ */
+function buildSceneBackgroundWorkflow(prompt: string): Record<string, any> {
+  return {
+    '1': {
+      class_type: 'CheckpointLoaderSimple',
+      inputs: {
+        ckpt_name: 'v1-5-pruned-emaonly.safetensors',
+      },
+    },
+    '2': {
+      class_type: 'CLIPTextEncode',
+      inputs: {
+        text: `${prompt}, wide panoramic view, establishing shot, environment art, clean illustration, digital painting, high quality, detailed background`,
+        clip: ['1', 1],
+      },
+    },
+    '3': {
+      class_type: 'CLIPTextEncode',
+      inputs: {
+        text: 'text, watermark, blurry, low quality, noisy, deformed, people, hands, fingers, close-up',
+        clip: ['1', 1],
+      },
+    },
+    '4': {
+      class_type: 'EmptyLatentImage',
+      inputs: {
+        width: 1024,
+        height: 512,
+        batch_size: 1,
+      },
+    },
+    '5': {
+      class_type: 'KSampler',
+      inputs: {
+        seed: Math.floor(Math.random() * Number.MAX_SAFE_INTEGER),
+        steps: 25,
+        cfg: 7.5,
+        sampler_name: 'euler',
+        scheduler: 'normal',
+        denoise: 1,
+        model: ['1', 0],
+        positive: ['2', 0],
+        negative: ['3', 0],
+        latent_image: ['4', 0],
+      },
+    },
+    '6': {
+      class_type: 'VAEDecode',
+      inputs: {
+        samples: ['5', 0],
+        vae: ['1', 2],
+      },
+    },
+    '7': {
+      class_type: 'SaveImage',
+      inputs: {
+        filename_prefix: 'glamour-scene-bg',
+        images: ['6', 0],
+      },
+    },
+  }
+}
+
+// ─── Scene Background Generation ─────────────────────────────
+
+/** Generate a scene background image from a background prompt */
+export async function generateSceneBackground(
+  prompt: string,
+  manifestId: string,
+): Promise<{ hash: string; url: string; cached: boolean }> {
+  const hash = hashPrompt(prompt, `scene-bg-${manifestId}`)
+  const url = assetUrl(hash)
+
+  if (await isCached(hash)) {
+    log.info({ hash, manifestId }, 'Scene background: cache hit')
+    const resolverKey = `scene-bg_${manifestId}`
+    serverAssetResolver.register(resolverKey, { type: 'image', url, hash })
+    broadcast({ type: 'glamour-scene-bg', manifestId, hash, url })
+    return { hash, url, cached: true }
+  }
+
+  log.info({ hash, manifestId, promptLength: prompt.length }, 'Scene background: generating via ComfyUI')
+
+  try {
+    await fs.mkdir(ASSET_DIR, { recursive: true })
+    const client = new ComfyUIClient()
+    const workflow = buildSceneBackgroundWorkflow(prompt)
+    const result = await client.queuePrompt(workflow)
+    const promptId = result.prompt_id
+
+    log.info({ promptId, hash }, 'Scene background: queued to ComfyUI')
+
+    // Poll for completion (90s — wider image takes longer)
+    const deadline = Date.now() + 90_000
+    let history: Record<string, any> = {}
+    while (Date.now() < deadline) {
+      await new Promise(r => setTimeout(r, 500))
+      try {
+        history = await client.getHistory(promptId)
+      } catch {
+        continue
+      }
+      if (history[promptId]?.status?.status_str === 'success') break
+      if (history[promptId]?.status?.status_str === 'error') {
+        throw new Error('ComfyUI execution failed for scene background')
+      }
+    }
+
+    // Find the output image
+    const outputs = history[promptId]?.outputs ?? {}
+    let outputFilename: string | null = null
+    for (const nodeOutput of Object.values(outputs) as any[]) {
+      if (nodeOutput?.images?.[0]) {
+        outputFilename = nodeOutput.images[0].filename
+        break
+      }
+    }
+
+    if (outputFilename) {
+      const comfyOutputDir = path.resolve(
+        process.cwd(), 'services', 'comfyui',
+        'ComfyUI_windows_portable', 'ComfyUI', 'output'
+      )
+      const sourcePath = path.join(comfyOutputDir, outputFilename)
+      const destPath = path.join(ASSET_DIR, `${hash}.png`)
+
+      try {
+        await fs.copyFile(sourcePath, destPath)
+        log.info({ hash, outputFilename }, 'Scene background: cached')
+      } catch {
+        const altSource = path.join(process.cwd(), 'data', 'output', outputFilename)
+        await fs.copyFile(altSource, destPath)
+        log.info({ hash, outputFilename, altSource: true }, 'Scene background: cached from alt dir')
+      }
+
+      const resolverKey = `scene-bg_${manifestId}`
+      serverAssetResolver.register(resolverKey, { type: 'image', url, hash })
+    }
+
+    broadcast({ type: 'glamour-scene-bg', manifestId, hash, url })
+    return { hash, url, cached: false }
+  } catch (err: any) {
+    log.error({ err, hash, manifestId }, 'Scene background generation failed')
+    throw err
+  }
+}
+
 // ─── Generation ─────────────────────────────────────────────────
 
 /** Generate a single glamour asset from a prompt */
@@ -137,7 +287,9 @@ export async function generateAsset(
   knotId?: string,
   size = 512
 ): Promise<{ hash: string; url: string; cached: boolean }> {
-  const hash = hashPrompt(prompt, knotType)
+  // Include knotId in hash key when present, so different instances of the same type get unique assets
+  const hashKey = knotId ? `${knotType}_${knotId}` : knotType
+  const hash = hashPrompt(prompt, hashKey)
   const url = assetUrl(hash)
 
   // Check cache
@@ -247,11 +399,14 @@ export async function generateManifestAssets(
   for (const mapping of manifest.mappings) {
     if (!mapping.assetPrompt) continue
 
-    const hash = hashPrompt(mapping.assetPrompt, mapping.knotType)
+    // Include knotId in hash key to avoid collision when multiple mappings share a knotType
+    const hashKey = mapping.knotId ? `${mapping.knotType}_${mapping.knotId}` : mapping.knotType
+    const hash = hashPrompt(mapping.assetPrompt, hashKey)
     const url = assetUrl(hash)
     const cached = await isCached(hash)
 
-    const knotId = knotIdMap?.get(mapping.knotType)
+    // Prefer instance-level knotId from mapping, fall back to type-level map
+    const knotId = mapping.knotId ?? knotIdMap?.get(mapping.knotType)
 
     results.push({
       knotType: mapping.knotType,
@@ -278,8 +433,15 @@ export async function generateManifestAssets(
     }
   }
 
+  // Scene background generation (if backgroundPrompt exists)
+  if (manifest.sceneConfig.backgroundPrompt) {
+    generateSceneBackground(manifest.sceneConfig.backgroundPrompt, manifest.id).catch(err => {
+      log.error({ err, manifestId: manifest.id }, 'Scene background generation failed')
+    })
+  }
+
   log.info(
-    { total: results.length, pending: results.filter(r => r.pending).length },
+    { total: results.length, pending: results.filter(r => r.pending).length, hasSceneBg: !!manifest.sceneConfig.backgroundPrompt },
     'Glamour assets: batch queued'
   )
 

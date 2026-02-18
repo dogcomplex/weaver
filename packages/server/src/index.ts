@@ -1,3 +1,4 @@
+import 'dotenv/config'
 import express from 'express'
 import cors from 'cors'
 import path from 'path'
@@ -12,6 +13,7 @@ import { servicesRouter, setServiceBroadcast, probeServicesOnStartup } from './r
 import { aiRouter } from './routes/ai.js'
 import { errorHandler } from './middleware/errors.js'
 import { setupFileWatcher } from './watcher.js'
+import { setupLociWatcher, notifyGraphChanged } from './agents/loci-watcher.js'
 import { log } from './logger.js'
 
 const PORT = parseInt(process.env.PORT ?? '4444', 10)
@@ -139,8 +141,38 @@ export function broadcast(data: unknown): void {
 // Wire broadcast to services module
 setServiceBroadcast(broadcast)
 
-// Watch data/graphs/ for external changes
-setupFileWatcher(broadcast)
+// Background Loci watcher — reevaluates active manifest when graphs change
+setupLociWatcher(broadcast)
+
+// Watch data/graphs/ for external changes, forwarding to Loci watcher too
+setupFileWatcher((data) => {
+  broadcast(data)
+  if (typeof data === 'object' && data !== null && 'type' in data) {
+    const msg = data as { type: string; filename?: string }
+    if (msg.type === 'graph:changed' && msg.filename) {
+      notifyGraphChanged(msg.filename)
+    }
+  }
+})
+
+// Graceful port conflict handling — tsx watch can restart before the old process releases the port
+let retried = false
+server.on('error', (err: NodeJS.ErrnoException) => {
+  if (err.code === 'EADDRINUSE' && !retried) {
+    retried = true
+    log.warn({ port: PORT }, `Port ${PORT} already in use — retrying in 1 s…`)
+    setTimeout(() => {
+      server.close()
+      server.listen(PORT)
+    }, 1000)
+  } else if (err.code === 'EADDRINUSE') {
+    log.error({ port: PORT }, `Port ${PORT} is still in use after retry. Kill the other process or use PORT=<other> npm run dev`)
+    process.exit(1)
+  } else {
+    log.error({ err }, 'Server error')
+    process.exit(1)
+  }
+})
 
 server.listen(PORT, () => {
   log.info({ port: PORT }, `Weaver server listening on http://localhost:${PORT}`)

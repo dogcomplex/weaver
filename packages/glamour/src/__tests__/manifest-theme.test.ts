@@ -404,7 +404,7 @@ describe('ManifestTheme — canMerge / enchantSubgraph', () => {
     const theme = new ManifestTheme(testManifest, new Map())
     const weave = makeWeave([])
     const ctx = makeContext(theme, weave)
-    expect(() => theme.enchantSubgraph([], ctx)).toThrow('not implemented')
+    expect(() => theme.enchantSubgraph([], ctx)).toThrow('No matching merge group')
   })
 })
 

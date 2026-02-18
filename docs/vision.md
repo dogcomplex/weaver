@@ -2,7 +2,7 @@
 
 ## Context
 
-Weaver is a visual graph programming platform built across 5 phases — core types, runtime, adapters, server, frontend, MCP, and ComfyUI integration. It's fully functional: you can create knots, connect them, save/load, trace execution, queue to ComfyUI, and see generated images inline. **157 tests pass, server + frontend run, ComfyUI portable with SD 1.5 generates images end-to-end.**
+Weaver is a visual graph programming platform built across 5 phases — core types, runtime, adapters, server, frontend, MCP, and ComfyUI integration. It's fully functional: you can create knots, connect them, save/load, trace execution, queue to ComfyUI, and see generated images inline. **204 tests pass, server + frontend run, ComfyUI portable with SD 1.5 generates images end-to-end.**
 
 **Phase 1 (Classic Editor) is complete.** Selection, properties panel, deletion, context menus, knot type registry, type-specific rendering, keyboard shortcuts, undo/redo, validation, and ComfyUI service management from the web UI all work.
 
@@ -10,7 +10,9 @@ Weaver is a visual graph programming platform built across 5 phases — core typ
 
 **Phase 3 (First Glamour — "The Loom") is complete.** PixiJS v8 GlamourRenderer with full Loom theme: 8 hand-crafted SVG assets, facade controls (sliders, dropdowns, text inputs), CSS-synced HTML overlays, Alt+click partial unveil, pan/zoom camera, and click→Properties Panel integration. 128 tests passing at completion. The Loom metaphor scored ~3/10 on our own quality criteria — a useful exercise that informed the Phase 4 metaphor engine design.
 
-**Phase 4 (AI Integration) is in progress.** Claude-powered chat panel, SSE streaming with tool execution, MetaphorEngine (the Loci), and ComfyUI asset generation bridge.
+**Phase 4 (AI Integration) is COMPLETE.** Claude-powered chat panel, SSE streaming with tool execution, MetaphorEngine (the Loci), ComfyUI asset generation bridge, ManifestTheme with full visual fallback chain, facade controls (all 8 types), asset resolver with hash-based caching, and hot-swap via WebSocket. 204 tests passing.
+
+**Phase 5A (Glamour Polish) is COMPLETE.** GlamourRenderer refactored into focused modules (9 files from 1077-line monolith), scene-level background embedding with parallax, merged/fractal glamours via `canMerge()`/`enchantSubgraph()`, all 8 facade control types (slider, text, toggle, select, dial, display, button, color), theme selection UI with manifest browser and quality scores, animation architecture with PixiJS Ticker and new visual types (animated, video, interactive), unveil polish with hover shimmer + depth badges + right-click context menu, thread polish with data-type labels + scaled arrows, minimap with viewport indicator, and background Loci watcher for continuous reevaluation.
 
 **The vision**: Transform Weaver into something that has never been built — a system where workflows manifest as **living, interactive metaphorical worlds**. Factories with conveyor belts, gardens with irrigation, kingdoms with roads and messengers. Non-programmers understand what's happening intuitively because the visual metaphor *clicks*. AI (Claude) builds workflows from natural language, explains them in metaphorical terms, and generates custom visual assets using ComfyUI itself.
 
@@ -545,15 +547,17 @@ Phase 4B (MetaphorEngine — The Loci) ── ✅ COMPLETE
 Phase 4C (Asset generator) ── ✅ COMPLETE
 Phase 4D (AIChatPanel + App wiring) ── ✅ COMPLETE
 Phase 4E (Glamour narration) ── ✅ COMPLETE
-Phase 4 Future (Background Loci, group sessions, manifest→theme) ── PENDING
+Phase 4 Future (ManifestTheme, Background Loci) ── ✅ COMPLETE
                 ↓
-Phase 5 (Multiple glamours, world system, code view, n8n) ── depends on all above
+Phase 5A (Glamour polish: modules, scene bg, fractal, facade, UI, animation, unveil, minimap) ── ✅ COMPLETE
+                ↓
+Phase 5B (Plugin system, world-level glamours, code view, n8n) ── PENDING
 ```
 
 ## Test Coverage
 
 - **packages/core**: 41 tests (operations, helpers, serialization)
 - **packages/runtime**: 22 tests (trace, gate-eval)
-- **packages/glamour**: 65 tests (registry, animation, asset-resolver, loom-theme, metaphor-engine)
-- **packages/server**: 13 tests (ai-route)
-- **Total: 157 tests, all passing**
+- **packages/glamour**: 115 tests (registry, animation, asset-resolver, loom-theme, manifest-theme, metaphor-engine)
+- **packages/server**: 26 tests (ai-route)
+- **Total: 204 tests, all passing**

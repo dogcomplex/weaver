@@ -29,6 +29,7 @@ import type {
 import type {
   MetaphorManifest,
   MetaphorMapping,
+  MetaphorMergeGroup,
   MetaphorFacadeControl,
 } from '../../metaphor-engine.js'
 import { GlamourAssetResolver, hashKnotConfig } from '../../asset-resolver.js'
@@ -49,7 +50,9 @@ export class ManifestTheme implements GlamourTheme {
   readonly sceneConfig: GlamourSceneConfig
   readonly aiSystemPrompt: string
 
-  /** Quick lookup: knotType → MetaphorMapping */
+  /** Instance-level lookup: knotId → MetaphorMapping (highest priority) */
+  private mappingsById: Map<string, MetaphorMapping>
+  /** Type-level fallback: knotType → MetaphorMapping (first mapping of each type) */
   private mappingsByType: Map<string, MetaphorMapping>
 
   constructor(
@@ -70,21 +73,31 @@ export class ManifestTheme implements GlamourTheme {
 
     this.sceneConfig = {
       background: manifest.sceneConfig.background,
+      backgroundPrompt: manifest.sceneConfig.backgroundPrompt,
+      ambientDescription: manifest.sceneConfig.ambientDescription,
+      layoutHints: manifest.sceneConfig.layoutHints,
       layoutMode,
       spacing: manifest.sceneConfig.spacing,
     }
 
-    // Build lookup map
+    // Build lookup maps — instance-level (by knotId) takes priority over type-level
+    this.mappingsById = new Map()
     this.mappingsByType = new Map()
     for (const mapping of manifest.mappings) {
-      this.mappingsByType.set(mapping.knotType, mapping)
+      if (mapping.knotId) {
+        this.mappingsById.set(mapping.knotId, mapping)
+      }
+      // Type-level: first mapping of each type wins (don't overwrite with duplicates)
+      if (!this.mappingsByType.has(mapping.knotType)) {
+        this.mappingsByType.set(mapping.knotType, mapping)
+      }
     }
   }
 
   // ─── enchantKnot ───────────────────────────────────────────────
 
   enchantKnot(knot: Knot, context: EnchantContext): GlamourElement {
-    const mapping = this.mappingsByType.get(knot.type)
+    const mapping = this.mappingsById.get(knot.id) ?? this.mappingsByType.get(knot.type)
 
     // If unveiled, show raw info
     if (context.unveiledKnots.has(knot.id)) {
@@ -164,12 +177,122 @@ export class ManifestTheme implements GlamourTheme {
 
   // ─── canMerge / enchantSubgraph ─────────────────────────────────
 
-  canMerge(_knotIds: KnotId[], _context: EnchantContext): boolean {
-    return false
+  /**
+   * Check if a set of knots matches any merge group in the manifest.
+   * Matches when the knot types of the provided IDs exactly cover a merge group's knotTypes.
+   */
+  canMerge(knotIds: KnotId[], context: EnchantContext): boolean {
+    if (!this.manifest.mergedGroups || this.manifest.mergedGroups.length === 0) return false
+    const group = this.findMergeGroup(knotIds, context)
+    return group !== null
   }
 
-  enchantSubgraph(_knotIds: KnotId[], _context: EnchantContext): GlamourElement {
-    throw new Error('Subgraph glamours not implemented in ManifestTheme — use canMerge() to check first')
+  /**
+   * Produce a single GlamourElement for a merged group of knots.
+   * The merged element uses the group's label, asset prompt, and combined facade controls.
+   * Position is the centroid of all merged knots.
+   */
+  enchantSubgraph(knotIds: KnotId[], context: EnchantContext): GlamourElement {
+    const group = this.findMergeGroup(knotIds, context)
+    if (!group) {
+      throw new Error('No matching merge group for these knots — use canMerge() to check first')
+    }
+
+    // Calculate centroid position from all knots in the group
+    let cx = 0, cy = 0, count = 0
+    for (const knotId of knotIds) {
+      const knot = context.weave.knots.get(knotId)
+      if (knot) {
+        cx += knot.position.x
+        cy += knot.position.y
+        count++
+      }
+    }
+    if (count > 0) { cx /= count; cy /= count }
+
+    // Resolve visual (use group asset prompt if available)
+    let visual: GlamourVisual
+    if (group.assetPrompt) {
+      visual = {
+        type: 'generated',
+        prompt: group.assetPrompt,
+        fallback: { type: 'color', fill: '#2a1a3e', stroke: '#5a3a8e', shape: 'rect' },
+      }
+    } else {
+      visual = { type: 'color', fill: '#2a1a3e', stroke: '#5a3a8e', shape: 'rect' }
+    }
+
+    // Build combined facade with controls from all inner knots
+    const facade = this.buildMergedFacade(knotIds, group)
+
+    return {
+      veils: knotIds,
+      visual,
+      facade,
+      label: group.label,
+      tooltip: `${group.description} (${knotIds.length} knots merged)`,
+      position: { x: cx, y: cy },
+      size: group.size,
+      depth: 3, // Deeper than individual knots — indicates fractal depth
+    }
+  }
+
+  /** Find a merge group that matches a set of knot IDs by their types */
+  private findMergeGroup(knotIds: KnotId[], context: EnchantContext): MetaphorMergeGroup | null {
+    if (!this.manifest.mergedGroups) return null
+
+    // Get the set of knot types for the provided IDs
+    const knotTypes = new Set<string>()
+    for (const knotId of knotIds) {
+      const knot = context.weave.knots.get(knotId)
+      if (knot) knotTypes.add(knot.type)
+    }
+
+    // Find a group whose knotTypes match
+    for (const group of this.manifest.mergedGroups) {
+      const groupTypes = new Set(group.knotTypes)
+      if (groupTypes.size !== knotTypes.size) continue
+      let match = true
+      for (const t of groupTypes) {
+        if (!knotTypes.has(t)) { match = false; break }
+      }
+      if (match) return group
+    }
+
+    return null
+  }
+
+  /** Build facade controls for a merged group, injecting proper knotIds */
+  private buildMergedFacade(_knotIds: KnotId[], group: MetaphorMergeGroup): FacadeDefinition | null {
+    if (!group.facadeControls || group.facadeControls.length === 0) return null
+
+    const controls: FacadeControl[] = group.facadeControls.map((mc: MetaphorFacadeControl) => {
+      // Use binding.knotType to find the right knotId from the class-level map
+      const targetKnotId = mc.binding.knotType
+        ? this.knotIdMap.get(mc.binding.knotType)
+        : undefined
+      return {
+        id: mc.id,
+        controlType: mc.controlType,
+        label: mc.label,
+        position: mc.position,
+        binding: {
+          knotId: targetKnotId ?? _knotIds[0],
+          dataPath: mc.binding.dataPath,
+          min: mc.binding.min,
+          max: mc.binding.max,
+          step: mc.binding.step,
+          options: mc.binding.options,
+        },
+      }
+    })
+
+    return { controls }
+  }
+
+  /** Get merge groups from the manifest (for renderer use) */
+  getMergeGroups(): MetaphorMergeGroup[] {
+    return this.manifest.mergedGroups ?? []
   }
 
   // ─── describeWeave / describeKnot ──────────────────────────────
@@ -184,7 +307,7 @@ export class ManifestTheme implements GlamourTheme {
   }
 
   describeKnot(knot: Knot, _weave: Weave): string {
-    const mapping = this.mappingsByType.get(knot.type)
+    const mapping = this.mappingsById.get(knot.id) ?? this.mappingsByType.get(knot.type)
     if (mapping) {
       return mapping.description
     }
@@ -342,6 +465,20 @@ export function buildKnotIdMap(weave: Weave): Map<string, KnotId> {
     if (!map.has(knot.type)) {
       map.set(knot.type, knotId)
     }
+  }
+  return map
+}
+
+/**
+ * Builds a Map<knotType, KnotId[]> — all knot instances per type.
+ * Use when manifests have instance-level mappings for duplicate types.
+ */
+export function buildFullKnotIdMap(weave: Weave): Map<string, KnotId[]> {
+  const map = new Map<string, KnotId[]>()
+  for (const [knotId, knot] of weave.knots) {
+    const list = map.get(knot.type) ?? []
+    list.push(knotId)
+    map.set(knot.type, list)
   }
   return map
 }

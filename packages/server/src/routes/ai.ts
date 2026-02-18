@@ -34,6 +34,7 @@ import {
   type ChatSessionMessage,
 } from '../agents/session-store.js'
 import { generateManifestAssets, serverAssetResolver } from '../agents/asset-generator.js'
+import { setActiveManifestId } from '../agents/loci-watcher.js'
 import { broadcast } from '../index.js'
 import { log } from '../logger.js'
 import { deserializeWeave, serializeWeave } from '#weaver/core'
@@ -324,6 +325,26 @@ async function loadLatestManifest(): Promise<MetaphorManifest | null> {
   }
 }
 
+/** Load all saved manifest names (for deduplication when proposing new metaphors) */
+async function loadManifestNames(): Promise<string[]> {
+  try {
+    await fs.mkdir(MANIFESTS_DIR, { recursive: true })
+    const files = await fs.readdir(MANIFESTS_DIR)
+    const names: string[] = []
+    for (const file of files) {
+      if (!file.endsWith('.json')) continue
+      try {
+        const content = await fs.readFile(path.join(MANIFESTS_DIR, file), 'utf-8')
+        const m = JSON.parse(content) as MetaphorManifest
+        names.push(m.name)
+      } catch { /* skip corrupt files */ }
+    }
+    return names
+  } catch {
+    return []
+  }
+}
+
 // ─── Tool Executor ──────────────────────────────────────────────
 
 async function executeTool(
@@ -447,8 +468,10 @@ async function executeTool(
         if (input.audience) {
           schema.context = { audience: input.audience }
         }
+        // Load existing manifest names so Loci avoids duplicates
+        const existingNames = await loadManifestNames()
         const engine = new LLMMetaphorEngine(apiKey, undefined, input.weaveId)
-        const manifests = await engine.propose(schema, input.count ?? 3)
+        const manifests = await engine.propose(schema, input.count ?? 3, existingNames)
         // Persist each manifest for later activation
         for (const m of manifests) {
           await saveManifest(m).catch(err =>
@@ -530,6 +553,7 @@ async function executeTool(
         })
 
         log.info({ manifestId: manifest.id, name: manifest.name, pendingAssets }, 'Glamour activated')
+        setActiveManifestId(manifest.id)
 
         return JSON.stringify({
           success: true,
@@ -886,7 +910,8 @@ router.get('/glamour/manifests', async (_req, res) => {
       try {
         const content = await fs.readFile(path.join(MANIFESTS_DIR, file), 'utf-8')
         const m = JSON.parse(content) as MetaphorManifest
-        manifests.push({ id: m.id, name: m.name, score: m.scores.overall })
+        const cached = serverAssetResolver.has(`scene-bg_${m.id}`)
+        manifests.push({ id: m.id, name: m.name, score: m.scores.overall, cached })
       } catch { /* skip corrupt files */ }
     }
     res.json(manifests)
@@ -901,6 +926,82 @@ router.get('/glamour/manifests/:id', async (req, res) => {
     res.json(manifest)
   } catch {
     res.status(404).json({ error: 'Manifest not found' })
+  }
+})
+
+/**
+ * POST /api/ai/glamour/manifests/:id/activate
+ * Direct theme activation endpoint — bypasses AI chat.
+ * Loads the manifest, optionally generates assets, broadcasts to frontend.
+ */
+router.post('/glamour/manifests/:id/activate', async (req, res) => {
+  try {
+    const manifest = await loadManifest(req.params.id)
+    const weaveId = req.body?.weaveId as string | undefined
+
+    // If a weaveId is provided, generate assets
+    let pendingAssets = 0
+    if (weaveId) {
+      try {
+        const filepath = path.join(GRAPHS_DIR, `${weaveId}.weave.json`)
+        const content = await fs.readFile(filepath, 'utf-8')
+        const weave = deserializeWeave(content)
+        const knotIdMap = buildKnotIdMap(weave)
+        const assetResults = await generateManifestAssets(manifest, knotIdMap)
+        pendingAssets = assetResults.filter(r => r.pending).length
+      } catch (err: any) {
+        log.warn({ err }, 'Asset generation failed during direct activation')
+      }
+    }
+
+    // Broadcast theme change to frontend
+    broadcast({
+      type: 'glamour-theme-changed',
+      manifestId: manifest.id,
+      manifest,
+    })
+
+    log.info({ manifestId: manifest.id, name: manifest.name, pendingAssets }, 'Glamour activated (direct)')
+    setActiveManifestId(manifest.id)
+
+    res.json({
+      success: true,
+      themeId: manifest.id,
+      themeName: manifest.name,
+      pendingAssets,
+    })
+  } catch (err: any) {
+    res.status(404).json({ error: err.message ?? 'Failed to activate manifest' })
+  }
+})
+
+/**
+ * POST /api/ai/glamour/manifests/deactivate
+ * Deactivate the current glamour theme, reverting to default LoomTheme.
+ */
+router.post('/glamour/manifests/deactivate', async (_req, res) => {
+  broadcast({
+    type: 'glamour-theme-changed',
+    manifestId: null,
+    manifest: null,
+  })
+  log.info('Glamour deactivated — reverted to LoomTheme')
+  setActiveManifestId(null)
+  res.json({ success: true })
+})
+
+/**
+ * DELETE /api/ai/glamour/manifests/:id
+ * Delete a saved manifest file.
+ */
+router.delete('/glamour/manifests/:id', async (req, res) => {
+  try {
+    const filepath = path.join(MANIFESTS_DIR, `${req.params.id}.json`)
+    await fs.unlink(filepath)
+    log.info({ manifestId: req.params.id }, 'Manifest deleted')
+    res.json({ success: true })
+  } catch (err: any) {
+    res.status(404).json({ error: err.message ?? 'Manifest not found' })
   }
 })
 

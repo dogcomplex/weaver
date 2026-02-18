@@ -122,6 +122,12 @@ export interface GlamourTheme {
 /** Scene-level glamour configuration */
 export interface GlamourSceneConfig {
   background: string | GlamourVisual
+  /** Loci-generated prompt for a scene background image (wide format) */
+  backgroundPrompt?: string
+  /** Atmosphere/ambient description for future particle/shader effects */
+  ambientDescription?: string
+  /** Layout hints describing spatial arrangement of elements */
+  layoutHints?: string
   ambientEffects?: GlamourAnimation[]
   layoutMode: 'free' | 'horizontal' | 'vertical' | 'radial'
   /** Default spacing between elements */
@@ -167,6 +173,13 @@ export type GlamourVisual =
   | { type: 'color'; fill: string; stroke?: string; shape: 'rect' | 'circle' | 'hexagon' }
   | { type: 'component'; componentId: string }
   | { type: 'generated'; prompt: string; fallback: GlamourVisual }
+  // ─── Future visual types (architecture prep) ─────────────────
+  /** Sprite-sheet / frame-sequence animation */
+  | { type: 'animated'; frames: string[]; fps: number; loop: boolean }
+  /** Video playback (MP4/WebM) */
+  | { type: 'video'; url: string; loop: boolean }
+  /** Custom interactive widget with persistent state */
+  | { type: 'interactive'; componentId: string; state: Record<string, unknown> }
 
 /** How a glamour connection should be rendered */
 export interface GlamourConnectionVisual {

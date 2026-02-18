@@ -28,7 +28,7 @@
       "data": {
         "comfyui_class_type": "CLIPTextEncode",
         "inputs": {
-          "text": "a reel of film stock, photorealistic icon, 8k"
+          "text": "beautiful beach scene, photorealistic, 8k"
         }
       }
     },
@@ -76,9 +76,9 @@
         "comfyui_class_type": "KSampler",
         "inputs": {
           "seed": 42,
-          "steps": 20,
-          "cfg": 7.5,
-          "sampler_name": "euler_ancestral",
+          "steps": 30,
+          "cfg": 8,
+          "sampler_name": "euler",
           "scheduler": "normal",
           "denoise": 1
         }

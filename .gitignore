@@ -9,7 +9,8 @@ dist/
 
 # Runtime output
 data/output/
-
+data/sessions/
+data/manifests/
 
 # Environment
 .env

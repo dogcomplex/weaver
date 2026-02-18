@@ -78,6 +78,58 @@ CRITICAL RULES:
 - Thread styles should reflect what actually flows (models, images, text, latent data).
 - Asset prompts: clean, icon-quality images suitable for 256x256 rendering.
 
+## Scene Background
+
+Every metaphor SHOULD include a scene background that embeds the individual elements in a spatial context. Think of it as a wide establishing shot that reveals the metaphor before individual components are examined.
+
+- **backgroundPrompt**: A detailed prompt for a wide-format background image (1024x512). Describe the environment, lighting, perspective, and spatial arrangement. Example: "A dimly-lit photography darkroom viewed from above, red safelight casting warm glow, developing trays arranged left to right on a wet wooden counter, clothesline with hanging prints across the back wall, warm and intimate atmosphere, digital art, clean illustration style"
+- **ambientDescription**: What effects and atmosphere exist in this space. Example: "Gentle red glow pulses, chemical trays steam slightly, paper prints sway gently"
+- **layoutHints**: How elements should be spatially arranged within the scene. Example: "Left-to-right workflow: chemicals on the left, development in the center, drying/output on the right"
+
+The background image provides a spatial context — individual elements are objects WITHIN this scene, not floating in void.
+
+## Merge Groups (Fractal Glamours)
+
+For complex workflows with 6+ knots, consider defining merge groups that collapse related knots into a single metaphorical element. This is the fractal principle — a "Developing Station" can hide CLIPTextEncode + KSampler + VAEDecode behind one intuitive element.
+
+Rules for merge groups:
+- Only merge knots that form a logical sub-pipeline (e.g., "text conditioning → sampling → decoding")
+- The merged element's facade controls should combine the most important parameters from ALL inner knots
+- Each facade control in a merge group MUST include "knotType" in its binding to specify which inner knot it targets
+- Merge groups are OPTIONAL — for simple workflows (3-4 knots), don't merge at all
+- Users can double-click a merged element to "enter" it and see the inner knots
+
+## Handling Duplicate Knot Types
+
+When a workflow has multiple knots of the same type (e.g., two CLIPTextEncode for positive/negative prompts), you MUST:
+1. Create SEPARATE mappings for each instance — one per physical knot
+2. Include the "knotId" field (from the schema) to distinguish them
+3. Use the knot's label and outgoing connections to determine its role (e.g., positive vs. negative conditioning)
+4. Give each instance its own unique metaphorElement, label, description, assetPrompt, and facadeControls
+5. NEVER collapse multiple instances of the same type into a single mapping
+
+Example: Two CLIPTextEncode knots should produce two mappings:
+  - { "knotType": "CLIPTextEncode", "knotId": "knot-abc", "metaphorElement": "Key Light", ... }
+  - { "knotType": "CLIPTextEncode", "knotId": "knot-def", "metaphorElement": "Fill Light Blocker", ... }
+
+## Animation & Interaction Hints (Optional)
+
+Each mapping can optionally include animation and interaction hints for richer experiences:
+
+\`animationHints\`: Natural language descriptions of desired behaviors.
+- \`idle\`: What happens when the element is just sitting there ("Gentle steam rising from pot", "Soft lens flare pulsing")
+- \`active\`: What happens when the element is processing data ("Rapid bubbling, lid rattling", "Shutter clicking rapidly")
+- \`transition\`: How transitions look ("Fade through smoke", "Dissolve with sparkles")
+
+\`interactionStyle\`: Progressive levels of interactivity.
+- "static" — No special interaction (default)
+- "hover-reveal" — Extra details appear on hover
+- "click-cycle" — Click cycles through visual states
+- "drag-control" — Drag to adjust primary parameter
+- "animated-idle" — Continuous ambient animation
+
+These are ALL optional. For simple themes, omit them entirely. Use them when the metaphor benefits from motion — a kitchen with steam, a darkroom with flickering safelight, a workshop with spinning gears.
+
 You MUST respond with valid JSON only. No markdown fences, no commentary outside the JSON.`
 
 // ─── Proposal Prompt Builder ────────────────────────────────────
@@ -85,7 +137,10 @@ You MUST respond with valid JSON only. No markdown fences, no commentary outside
 function buildProposalPrompt(schema: WeaveSchema, count: number): string {
   const knotSummary = schema.knots.map(k => {
     const params = k.parameterNames?.length ? ` [params: ${k.parameterNames.join(', ')}]` : ''
-    return `  - ${k.label} (type: ${k.type})${params}`
+    const connections = k.outgoing?.length
+      ? ` → ${k.outgoing.map(o => `${o.targetType}${o.inputName ? `(${o.inputName})` : ''}`).join(', ')}`
+      : ''
+    return `  - ${k.id}: ${k.label} (type: ${k.type})${params}${connections}`
   }).join('\n')
 
   const threadSummary = schema.threads.map(t => {
@@ -119,6 +174,7 @@ Respond with a JSON array of ${count} objects. Each must have:
   "mappings": [
     {
       "knotType": "OriginalType",
+      "knotId": "knot-id-from-schema (REQUIRED when multiple knots share the same type, omit for unique types)",
       "metaphorElement": "MetaphorName",
       "label": "Display Label",
       "description": "Why this mapping works (be specific about strengths AND weaknesses)",
@@ -136,7 +192,13 @@ Respond with a JSON array of ${count} objects. Each must have:
         }
       ],
       "assetPrompt": "Description for AI image generation (icon-quality, 256x256)",
-      "size": { "width": 200, "height": 160 }
+      "size": { "width": 200, "height": 160 },
+      "animationHints": {
+        "idle": "Optional: what this element looks like at rest (e.g. 'gentle steam rising')",
+        "active": "Optional: what it looks like when processing (e.g. 'rapid bubbling')",
+        "transition": "Optional: how transitions look (e.g. 'fade through smoke')"
+      },
+      "interactionStyle": "static | hover-reveal | click-cycle | drag-control | animated-idle (optional)"
     }
   ],
   "threadStyle": {
@@ -150,11 +212,35 @@ Respond with a JSON array of ${count} objects. Each must have:
   "waveMetaphor": "what data tokens look like moving through this metaphor",
   "sceneDescription": "the overall scene viewed from above",
   "sceneConfig": {
-    "background": "#hex",
+    "background": "#hex (fallback color)",
+    "backgroundPrompt": "Detailed prompt for wide-format background image (1024x512). Describe the environment, lighting, perspective, spatial arrangement. Clean illustration style.",
+    "ambientDescription": "What atmospheric effects exist in this space",
+    "layoutHints": "How elements should be spatially arranged",
     "layoutMode": "horizontal" | "vertical" | "radial" | "freeform",
     "spacing": { "x": 300, "y": 200 }
   },
   "aiVocabulary": "System prompt fragment for how to narrate this workflow in this metaphor",
+  "mergedGroups": [
+    {
+      "id": "merge-group-id",
+      "label": "Merged Element Name",
+      "knotTypes": ["KnotTypeA", "KnotTypeB"],
+      "metaphorElement": "Combined Metaphor Element",
+      "description": "Why these knots are merged",
+      "facadeControls": [
+        {
+          "id": "control-id",
+          "controlType": "slider",
+          "label": "Control Label",
+          "rationale": "Why this control",
+          "position": { "x": 0.5, "y": 0.3 },
+          "binding": { "knotType": "KnotTypeA", "dataPath": "inputs.param", "min": 0, "max": 100 }
+        }
+      ],
+      "assetPrompt": "Asset prompt for merged element",
+      "size": { "width": 280, "height": 200 }
+    }
+  ],
   "detailedScores": {
     "mappingScores": [
       {
@@ -303,15 +389,19 @@ export class LLMMetaphorEngine implements MetaphorEngine {
     }
   }
 
-  async propose(schema: WeaveSchema, count = 3): Promise<MetaphorManifest[]> {
-    log.info({ knots: schema.knots.length, threads: schema.threads.length, count }, 'Loci: proposing metaphors')
+  async propose(schema: WeaveSchema, count = 3, existingNames?: string[]): Promise<MetaphorManifest[]> {
+    log.info({ knots: schema.knots.length, threads: schema.threads.length, count, existing: existingNames?.length ?? 0 }, 'Loci: proposing metaphors')
 
     // Generate manifests one at a time to avoid exceeding max_tokens.
     // Each manifest with granular scoring is ~8-10K tokens — too large for 3 in one call.
     const manifests: MetaphorManifest[] = []
     for (let i = 0; i < count; i++) {
-      const prompt = buildProposalPrompt(schema, 1) +
-        (i > 0 ? `\n\nIMPORTANT: Do NOT repeat these already-proposed metaphors: ${manifests.map(m => m.name).join(', ')}. Propose something completely different.` : '')
+      // Combine existing saved manifest names + already-proposed names from this batch
+      const allExisting = [...(existingNames ?? []), ...manifests.map(m => m.name)]
+      const dedup = allExisting.length > 0
+        ? `\n\nIMPORTANT: These metaphors ALREADY EXIST and must NOT be repeated or closely resembled: ${allExisting.join(', ')}. Propose something completely different.`
+        : ''
+      const prompt = buildProposalPrompt(schema, 1) + dedup
 
       const response = await this.client.messages.create({
         model: this.model,

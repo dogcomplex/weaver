@@ -38,6 +38,8 @@ export interface WeaveSchemaKnot {
   dataKeys: string[]
   /** Nested parameter names from inputs (e.g. ['steps', 'cfg', 'seed']) */
   parameterNames?: string[]
+  /** Outgoing connections: which knots this feeds into and via which input slot */
+  outgoing?: Array<{ targetId: string; targetType: string; inputName?: string }>
 }
 
 export interface WeaveSchemaThread {
@@ -78,6 +80,12 @@ export interface MetaphorManifest {
   /** Scene config matching GlamourTheme.sceneConfig */
   sceneConfig: {
     background: string
+    /** Loci-generated prompt for a scene background image (wide format, e.g. 1024x512) */
+    backgroundPrompt?: string
+    /** Atmosphere/ambient description for future particle/shader effects */
+    ambientDescription?: string
+    /** Layout hints: "Left-to-right workflow: chemicals → development → drying" */
+    layoutHints?: string
     layoutMode: 'horizontal' | 'vertical' | 'radial' | 'freeform'
     spacing: { x: number; y: number }
   }
@@ -85,12 +93,44 @@ export interface MetaphorManifest {
   aiVocabulary: string
   /** Quality scores */
   scores: MetaphorScores
+  /**
+   * Optional merge groups — collapse multiple knots into one fractal element.
+   * The Loci decides when merging improves comprehension (e.g., for complex
+   * sub-pipelines that are better understood as a single conceptual unit).
+   */
+  mergedGroups?: MetaphorMergeGroup[]
 }
 
-/** Maps a knot type to a metaphorical element */
+/**
+ * A merge group collapses multiple knots behind a single glamour element.
+ * The fractal principle: a "Developing Station" hides CLIPTextEncode + KSampler + VAEDecode.
+ * The user sees one intuitive element with combined facade controls.
+ */
+export interface MetaphorMergeGroup {
+  /** Unique ID for this merge group */
+  id: string
+  /** Display name for the merged element */
+  label: string
+  /** Which knot types to merge (matched against weave knot types) */
+  knotTypes: string[]
+  /** The metaphorical element name */
+  metaphorElement: string
+  /** Description of what this group represents */
+  description: string
+  /** Combined facade controls from all inner knots */
+  facadeControls: MetaphorFacadeControl[]
+  /** Asset prompt for the merged visual */
+  assetPrompt?: string
+  /** Size of merged element */
+  size: { width: number; height: number }
+}
+
+/** Maps a knot type (or specific knot instance) to a metaphorical element */
 export interface MetaphorMapping {
   /** Which knot type this mapping applies to (e.g. 'KSampler') */
   knotType: string
+  /** Specific knot instance ID — required when multiple knots share the same type */
+  knotId?: string
   /** The metaphorical element name: "Oven", "Camera", "Brush" */
   metaphorElement: string
   /** Display label */
@@ -105,6 +145,24 @@ export interface MetaphorMapping {
   svgFallback?: string
   /** Display size */
   size: { width: number; height: number }
+  /**
+   * Animation hints — natural language descriptions of desired behaviors.
+   * The renderer uses these to apply ambient effects when supported.
+   * All optional — simpler themes just don't set them.
+   */
+  animationHints?: {
+    /** Idle animation: "Gentle bobbing, steam rising" */
+    idle?: string
+    /** Active/processing animation: "Rapid bubbling, lid rattling" */
+    active?: string
+    /** Transition animation: "Fade through smoke" */
+    transition?: string
+  }
+  /**
+   * Interaction style — how the user interacts with this element.
+   * Progressive levels of interactivity the Loci can choose from.
+   */
+  interactionStyle?: 'static' | 'hover-reveal' | 'click-cycle' | 'drag-control' | 'animated-idle'
 }
 
 /** Facade control definition within a metaphor (simplified from FacadeControl for manifest portability) */
@@ -119,6 +177,8 @@ export interface MetaphorFacadeControl {
   /** Binding to knot data */
   binding: {
     dataPath: string
+    /** For merge group controls: which inner knot type this control targets */
+    knotType?: string
     min?: number
     max?: number
     step?: number
@@ -251,8 +311,8 @@ export interface MetaphorStability {
 
 /** The Loci's core capability — pure text-gen, no rendering deps */
 export interface MetaphorEngine {
-  /** Propose N metaphors for a weave, scored and ranked */
-  propose(schema: WeaveSchema, count?: number): Promise<MetaphorManifest[]>
+  /** Propose N metaphors for a weave, scored and ranked. Pass existingNames to avoid duplicates. */
+  propose(schema: WeaveSchema, count?: number, existingNames?: string[]): Promise<MetaphorManifest[]>
 
   /** Refine an existing metaphor based on user feedback */
   refine(current: MetaphorManifest, feedback: string): Promise<MetaphorManifest>
@@ -282,6 +342,16 @@ export function weaveToSchema(weave: { knots: Map<string, any>; threads: Map<str
       dataType: thread.data?.type,
       label: thread.label,
     })
+  }
+
+  // Enrich knots with outgoing connection info so the Loci can see each knot's role
+  for (const knot of knots) {
+    knot.outgoing = threads
+      .filter(t => t.source === knot.id)
+      .map(t => {
+        const target = knots.find(k => k.id === t.target)
+        return { targetId: t.target, targetType: target?.type ?? 'unknown', inputName: t.label }
+      })
   }
 
   return { knots, threads, purpose }

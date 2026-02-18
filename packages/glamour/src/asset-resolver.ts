@@ -98,6 +98,11 @@ export class GlamourAssetResolver {
     }
   }
 
+  /** Check if a key exists in the cache */
+  has(key: string): boolean {
+    return this.cache.has(key)
+  }
+
   /** Get all registered assets (for hydration on page load) */
   getAll(): Map<string, GlamourAsset> {
     return new Map(this.cache)

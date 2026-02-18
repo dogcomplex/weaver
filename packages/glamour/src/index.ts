@@ -62,6 +62,7 @@ export type {
   MetaphorContext,
   MetaphorManifest,
   MetaphorMapping,
+  MetaphorMergeGroup,
   MetaphorFacadeControl,
   MetaphorThreadStyle,
   MetaphorScores,
