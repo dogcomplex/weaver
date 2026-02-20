@@ -154,6 +154,7 @@ function AppInner() {
             setToolCalls={setChatToolCalls}
             sessionId={chatSessionId}
             setSessionId={setChatSessionId}
+            wsSubscribe={subscribe}
           />
         </ErrorBoundary>
       )}

@@ -22,6 +22,7 @@ import {
   appendLociEntry,
   type LociSessionEntry,
 } from './session-store.js'
+import type { AgentEmitter } from './agent-emitter.js'
 import type {
   WeaveSchema,
   MetaphorManifest,
@@ -345,18 +346,34 @@ Return ONLY a MetaphorScores JSON object:
 }`
 }
 
+// ─── Model Config ───────────────────────────────────────────────
+
+export interface LociModelConfig {
+  /** High-quality model for initial creation (propose, refine) */
+  creative: string
+  /** Fast/cheap model for maintenance (reevaluate) */
+  maintenance: string
+}
+
+const DEFAULT_MODELS: LociModelConfig = {
+  creative: 'claude-sonnet-4-20250514',
+  maintenance: 'claude-haiku-4-5-20251001',
+}
+
 // ─── LLM Implementation ─────────────────────────────────────────
 
 export class LLMMetaphorEngine implements MetaphorEngine {
   private client: Anthropic
-  private model: string
+  private creativeModel: string
+  private maintenanceModel: string
   private lociSessionId: string | null = null
   private weaveId: string | null = null
 
-  constructor(apiKey: string, model?: string, weaveId?: string) {
+  constructor(apiKey: string, models?: Partial<LociModelConfig>, weaveId?: string) {
     this.client = new Anthropic({ apiKey })
-    // Default to Haiku for cheap, fast metaphor generation
-    this.model = model ?? 'claude-haiku-4-5-20251001'
+    // Sonnet for creation (propose/refine), Haiku for maintenance (reevaluate)
+    this.creativeModel = models?.creative ?? DEFAULT_MODELS.creative
+    this.maintenanceModel = models?.maintenance ?? DEFAULT_MODELS.maintenance
     this.weaveId = weaveId ?? null
   }
 
@@ -376,7 +393,7 @@ export class LLMMetaphorEngine implements MetaphorEngine {
   }
 
   /** Log an entry to the Loci session transcript */
-  private async logEntry(entry: Omit<LociSessionEntry, 'timestamp' | 'model'>): Promise<void> {
+  private async logEntry(entry: Omit<LociSessionEntry, 'timestamp' | 'model'>, model: string): Promise<void> {
     const sessionId = await this.ensureSession()
     if (!sessionId) return
 
@@ -384,14 +401,14 @@ export class LLMMetaphorEngine implements MetaphorEngine {
       await appendLociEntry(sessionId, {
         ...entry,
         timestamp: new Date().toISOString(),
-        model: this.model,
+        model,
       })
     } catch (err) {
       log.warn({ err }, 'Failed to log Loci entry')
     }
   }
 
-  async propose(schema: WeaveSchema, count = 3, existingNames?: string[]): Promise<MetaphorManifest[]> {
+  async propose(schema: WeaveSchema, count = 3, existingNames?: string[], emitter?: AgentEmitter): Promise<MetaphorManifest[]> {
     log.info({ knots: schema.knots.length, threads: schema.threads.length, count, existing: existingNames?.length ?? 0 }, 'Loci: proposing metaphors')
 
     // Generate manifests one at a time to avoid exceeding max_tokens.
@@ -405,8 +422,11 @@ export class LLMMetaphorEngine implements MetaphorEngine {
         : ''
       const prompt = buildProposalPrompt(schema, 1) + dedup
 
+      emitter?.progress({ phase: 'proposal', current: i + 1, total: count, detail: `Sending schema to ${this.creativeModel}...` })
+      emitter?.prompt?.({ phase: 'proposal', systemPrompt: i === 0 ? LOCI_SYSTEM_PROMPT : undefined, userPrompt: prompt })
+
       const response = await this.client.messages.create({
-        model: this.model,
+        model: this.creativeModel,
         max_tokens: 8192,
         system: LOCI_SYSTEM_PROMPT,
         messages: [{ role: 'user', content: prompt }],
@@ -414,6 +434,7 @@ export class LLMMetaphorEngine implements MetaphorEngine {
 
       if (response.stop_reason === 'max_tokens') {
         log.warn({ iteration: i }, 'Loci: response truncated at max_tokens, skipping')
+        emitter?.result({ phase: 'proposal', summary: `Proposal ${i + 1} truncated (max_tokens), skipping`, model: this.creativeModel, tokens: { input: response.usage.input_tokens, output: response.usage.output_tokens } })
         continue
       }
 
@@ -425,8 +446,20 @@ export class LLMMetaphorEngine implements MetaphorEngine {
       try {
         const parsed = parseManifestArray(text)
         manifests.push(...parsed)
+        for (const m of parsed) {
+          m.scores.overall = calculateOverallScore(m.scores)
+          emitter?.result({
+            phase: 'proposal',
+            summary: `"${m.name}" scored ${m.scores.overall.toFixed(1)}/10`,
+            inputPreview: prompt.slice(0, 300),
+            outputPreview: text.slice(0, 500),
+            tokens: { input: response.usage.input_tokens, output: response.usage.output_tokens },
+            model: this.creativeModel,
+          })
+        }
       } catch (err) {
         log.warn({ err, iteration: i }, 'Loci: failed to parse manifest, skipping')
+        emitter?.result({ phase: 'proposal', summary: `Proposal ${i + 1} failed to parse, skipping`, model: this.creativeModel })
         continue
       }
     }
@@ -434,6 +467,8 @@ export class LLMMetaphorEngine implements MetaphorEngine {
     if (manifests.length === 0) {
       throw new Error('Loci failed to produce any valid manifests')
     }
+
+    emitter?.progress({ phase: 'scoring', detail: 'Recalculating scores and ranking...' })
 
     // Recalculate overall scores to ensure consistency
     for (const m of manifests) {
@@ -444,7 +479,7 @@ export class LLMMetaphorEngine implements MetaphorEngine {
     manifests.sort((a, b) => b.scores.overall - a.scores.overall)
 
     log.info(
-      { count: manifests.length, topScore: manifests[0]?.scores.overall },
+      { count: manifests.length, topScore: manifests[0]?.scores.overall, model: this.creativeModel },
       'Loci: metaphors proposed'
     )
 
@@ -453,18 +488,20 @@ export class LLMMetaphorEngine implements MetaphorEngine {
       type: 'propose',
       input: { schema, count },
       output: manifests,
-    })
+    }, this.creativeModel)
 
     return manifests
   }
 
-  async refine(current: MetaphorManifest, feedback: string): Promise<MetaphorManifest> {
+  async refine(current: MetaphorManifest, feedback: string, emitter?: AgentEmitter): Promise<MetaphorManifest> {
     const prompt = buildRefinePrompt(current, feedback)
 
     log.info({ name: current.name, feedback: feedback.slice(0, 100) }, 'Loci: refining metaphor')
+    emitter?.progress({ phase: 'refine', detail: `Refining "${current.name}" with feedback...` })
+    emitter?.prompt?.({ phase: 'refine', userPrompt: prompt })
 
     const response = await this.client.messages.create({
-      model: this.model,
+      model: this.creativeModel,
       max_tokens: 4096,
       system: LOCI_SYSTEM_PROMPT,
       messages: [{ role: 'user', content: prompt }],
@@ -478,8 +515,17 @@ export class LLMMetaphorEngine implements MetaphorEngine {
     const manifest = parseManifestSingle(text)
     manifest.scores.overall = calculateOverallScore(manifest.scores)
 
+    emitter?.result({
+      phase: 'refine',
+      summary: `Refined to "${manifest.name}" ${manifest.scores.overall.toFixed(1)}/10 (was ${current.scores.overall.toFixed(1)}/10)`,
+      inputPreview: feedback.slice(0, 200),
+      outputPreview: text.slice(0, 500),
+      tokens: { input: response.usage.input_tokens, output: response.usage.output_tokens },
+      model: this.creativeModel,
+    })
+
     log.info(
-      { name: manifest.name, score: manifest.scores.overall, prevScore: current.scores.overall },
+      { name: manifest.name, score: manifest.scores.overall, prevScore: current.scores.overall, model: this.creativeModel },
       'Loci: metaphor refined'
     )
 
@@ -488,18 +534,20 @@ export class LLMMetaphorEngine implements MetaphorEngine {
       type: 'refine',
       input: { feedback, manifestName: current.name },
       output: manifest,
-    })
+    }, this.creativeModel)
 
     return manifest
   }
 
-  async reevaluate(manifest: MetaphorManifest, newSchema: WeaveSchema): Promise<MetaphorScores> {
+  async reevaluate(manifest: MetaphorManifest, newSchema: WeaveSchema, emitter?: AgentEmitter): Promise<MetaphorScores> {
     const prompt = buildReevaluatePrompt(manifest, newSchema)
 
     log.info({ name: manifest.name, newKnots: newSchema.knots.length }, 'Loci: re-evaluating metaphor')
+    emitter?.progress({ phase: 'reevaluate', detail: `Re-evaluating "${manifest.name}" against updated weave...` })
+    emitter?.prompt?.({ phase: 'reevaluate', userPrompt: prompt })
 
     const response = await this.client.messages.create({
-      model: this.model,
+      model: this.maintenanceModel,
       max_tokens: 1024,
       system: LOCI_SYSTEM_PROMPT,
       messages: [{ role: 'user', content: prompt }],
@@ -513,8 +561,16 @@ export class LLMMetaphorEngine implements MetaphorEngine {
     const scores = parseScores(text)
     scores.overall = calculateOverallScore(scores)
 
+    emitter?.result({
+      phase: 'reevaluate',
+      summary: `Score: ${scores.overall.toFixed(1)}/10 (was ${manifest.scores.overall.toFixed(1)}/10, delta ${(scores.overall - manifest.scores.overall).toFixed(1)})`,
+      outputPreview: text.slice(0, 500),
+      tokens: { input: response.usage.input_tokens, output: response.usage.output_tokens },
+      model: this.maintenanceModel,
+    })
+
     log.info(
-      { name: manifest.name, prevScore: manifest.scores.overall, newScore: scores.overall },
+      { name: manifest.name, prevScore: manifest.scores.overall, newScore: scores.overall, model: this.maintenanceModel },
       'Loci: re-evaluation complete'
     )
 
@@ -523,7 +579,7 @@ export class LLMMetaphorEngine implements MetaphorEngine {
       type: 'reevaluate',
       input: { schema: newSchema, manifestName: manifest.name },
       output: scores,
-    })
+    }, this.maintenanceModel)
 
     return scores
   }

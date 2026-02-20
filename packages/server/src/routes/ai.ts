@@ -25,6 +25,7 @@ import {
   toolListWeaves,
 } from '../agents/graph-tools.js'
 import { LLMMetaphorEngine } from '../agents/metaphor-agent.js'
+import type { AgentEmitter } from '../agents/agent-emitter.js'
 import {
   createChatSession,
   appendChatMessage,
@@ -350,7 +351,8 @@ async function loadManifestNames(): Promise<string[]> {
 async function executeTool(
   name: string,
   input: Record<string, any>,
-  themeId?: string
+  themeId?: string,
+  emitter?: (event: string, data: unknown) => void,
 ): Promise<string> {
   try {
     const theme = resolveTheme(themeId)
@@ -470,8 +472,19 @@ async function executeTool(
         }
         // Load existing manifest names so Loci avoids duplicates
         const existingNames = await loadManifestNames()
-        const engine = new LLMMetaphorEngine(apiKey, undefined, input.weaveId)
-        const manifests = await engine.propose(schema, input.count ?? 3, existingNames)
+
+        // Build AgentEmitter that pipes to SSE stream
+        const lociEmitter: AgentEmitter = {
+          progress: (evt) => emitter?.('agent_progress', { agentName: 'loci', ...evt }),
+          result: (evt) => emitter?.('agent_result', { agentName: 'loci', ...evt }),
+          prompt: (evt) => emitter?.('agent_prompt', { agentName: 'loci', ...evt }),
+        }
+        emitter?.('agent_start', { agentName: 'loci', operation: 'propose', detail: `Proposing ${input.count ?? 3} metaphors via Sonnet...` })
+
+        const engine = new LLMMetaphorEngine(apiKey, {}, input.weaveId)
+        const manifests = await engine.propose(schema, input.count ?? 3, existingNames, lociEmitter)
+
+        emitter?.('agent_complete', { agentName: 'loci', operation: 'propose', summary: `${manifests.length} metaphors proposed. Top: "${manifests[0]?.name}" (${manifests[0]?.scores.overall.toFixed(1)}/10)` })
         // Persist each manifest for later activation
         for (const m of manifests) {
           await saveManifest(m).catch(err =>
@@ -494,8 +507,18 @@ async function executeTool(
       case 'weaver_refine_metaphor': {
         const apiKey = process.env.ANTHROPIC_API_KEY
         if (!apiKey) return JSON.stringify({ error: 'ANTHROPIC_API_KEY not set' })
-        const engine = new LLMMetaphorEngine(apiKey, undefined, input.manifest?.id)
-        const refined = await engine.refine(input.manifest, input.feedback)
+
+        const refineEmitter: AgentEmitter = {
+          progress: (evt) => emitter?.('agent_progress', { agentName: 'loci', ...evt }),
+          result: (evt) => emitter?.('agent_result', { agentName: 'loci', ...evt }),
+          prompt: (evt) => emitter?.('agent_prompt', { agentName: 'loci', ...evt }),
+        }
+        emitter?.('agent_start', { agentName: 'loci', operation: 'refine', detail: `Refining "${input.manifest?.name}"...` })
+
+        const engine = new LLMMetaphorEngine(apiKey, {}, input.manifest?.id)
+        const refined = await engine.refine(input.manifest, input.feedback, refineEmitter)
+
+        emitter?.('agent_complete', { agentName: 'loci', operation: 'refine', summary: `Refined to ${refined.scores.overall.toFixed(1)}/10` })
         // Persist refined manifest
         await saveManifest(refined).catch(err =>
           log.warn({ err, manifestId: refined.id }, 'Failed to save refined manifest')
@@ -537,10 +560,14 @@ async function executeTool(
         const knotIdMap = buildKnotIdMap(weave)
 
         // Queue asset generation for uncached visuals
+        emitter?.('agent_start', { agentName: 'asset-generator', operation: 'generate', detail: `Generating assets for "${manifest.name}"...` })
         let pendingAssets = 0
         try {
-          const assetResults = await generateManifestAssets(manifest, knotIdMap)
+          const assetResults = await generateManifestAssets(manifest, knotIdMap, (assetEvt) => {
+            emitter?.('asset_queued', assetEvt)
+          })
           pendingAssets = assetResults.filter(r => r.pending).length
+          emitter?.('agent_complete', { agentName: 'asset-generator', operation: 'generate', summary: `${assetResults.length} assets total, ${pendingAssets} queued for generation` })
         } catch (err: any) {
           log.warn({ err }, 'Asset generation failed (ComfyUI may not be running)')
         }
@@ -802,7 +829,7 @@ router.post('/chat', async (req: Request, res: Response) => {
         const toolResults: Anthropic.ToolResultBlockParam[] = []
         for (const tc of toolCalls) {
           log.info({ tool: tc.name, input: tc.input }, 'Executing tool')
-          const result = await executeTool(tc.name, tc.input, themeId)
+          const result = await executeTool(tc.name, tc.input, themeId, (event, data) => sendSSE(event, { ...data as object, toolCallId: tc.id }))
           const parsedResult = JSON.parse(result)
           sendSSE('tool_result', {
             id: tc.id,

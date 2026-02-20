@@ -57,8 +57,8 @@ export function setupLociWatcher(broadcast: (data: unknown) => void): void {
     return
   }
 
-  engine = new LLMMetaphorEngine(apiKey)
-  log.info('Loci watcher initialized — will reevaluate on graph changes')
+  engine = new LLMMetaphorEngine(apiKey, {})
+  log.info('Loci watcher initialized — will reevaluate on graph changes (Haiku for maintenance)')
 }
 
 /**

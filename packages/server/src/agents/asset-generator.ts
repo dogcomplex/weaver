@@ -398,7 +398,8 @@ export async function generateAsset(
  */
 export async function generateManifestAssets(
   manifest: MetaphorManifest,
-  knotIdMap?: Map<string, string>  // knotType → knotId (for broadcast targeting)
+  knotIdMap?: Map<string, string>,  // knotType → knotId (for broadcast targeting)
+  onAssetEvent?: (event: { knotType: string; knotId?: string; hash: string; prompt: string; cached: boolean }) => void,
 ): Promise<Array<{ knotType: string; hash: string; url: string; pending: boolean }>> {
   await fs.mkdir(ASSET_DIR, { recursive: true })
 
@@ -415,6 +416,15 @@ export async function generateManifestAssets(
 
     // Prefer instance-level knotId from mapping, fall back to type-level map
     const knotId = mapping.knotId ?? knotIdMap?.get(mapping.knotType)
+
+    // Emit per-asset event for visibility
+    onAssetEvent?.({
+      knotType: mapping.knotType,
+      knotId: knotId ?? undefined,
+      hash,
+      prompt: mapping.assetPrompt,
+      cached,
+    })
 
     results.push({
       knotType: mapping.knotType,

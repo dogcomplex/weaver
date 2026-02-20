@@ -15,6 +15,8 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { useWeave } from '../hooks/useWeave.js'
+import { AgentActivityCard, type AgentActivity, type AgentEvent } from './AgentActivityCard.js'
+import { BackgroundEventCard, type BackgroundEvent } from './BackgroundEventCard.js'
 
 // ─── Types (exported for App.tsx) ────────────────────────────────
 
@@ -46,6 +48,10 @@ interface SessionSummary {
   preview: string
 }
 
+// ─── WebSocket Listener Type ────────────────────────────────────
+
+type WebSocketListener = (msg: Record<string, unknown>) => void
+
 // ─── Props ──────────────────────────────────────────────────────
 
 interface AIChatPanelProps {
@@ -59,6 +65,8 @@ interface AIChatPanelProps {
   setToolCalls: React.Dispatch<React.SetStateAction<ToolCall[]>>
   sessionId: string | null
   setSessionId: React.Dispatch<React.SetStateAction<string | null>>
+  // Shared WebSocket subscription for background events
+  wsSubscribe?: (listener: WebSocketListener) => () => void
 }
 
 // ─── Component ──────────────────────────────────────────────────
@@ -73,6 +81,7 @@ export function AIChatPanel({
   setToolCalls,
   sessionId,
   setSessionId,
+  wsSubscribe,
 }: AIChatPanelProps) {
   const { state } = useWeave()
   const [input, setInput] = useState('')
@@ -81,6 +90,8 @@ export function AIChatPanel({
   const [expandedTools, setExpandedTools] = useState<Set<string>>(new Set())
   const [showHistory, setShowHistory] = useState(false)
   const [sessions, setSessions] = useState<SessionSummary[]>([])
+  const [agentActivities, setAgentActivities] = useState<Map<string, AgentActivity>>(new Map())
+  const [backgroundEvents, setBackgroundEvents] = useState<BackgroundEvent[]>([])
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const abortRef = useRef<AbortController | null>(null)
@@ -96,12 +107,41 @@ export function AIChatPanel({
   // Auto-scroll to bottom
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages, toolCalls])
+  }, [messages, toolCalls, agentActivities, backgroundEvents])
 
   // Focus input when panel opens
   useEffect(() => {
     if (open) inputRef.current?.focus()
   }, [open])
+
+  // Subscribe to background WebSocket events (loci-watcher, asset completions)
+  useEffect(() => {
+    if (!wsSubscribe) return
+    return wsSubscribe((msg) => {
+      if (msg.type === 'glamour-scores-updated') {
+        setBackgroundEvents(prev => [...prev.slice(-49), {
+          id: `bg-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+          type: 'score-update' as const,
+          timestamp: Date.now(),
+          data: msg,
+        }])
+      } else if (msg.type === 'glamour-score-warning') {
+        setBackgroundEvents(prev => [...prev.slice(-49), {
+          id: `bg-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+          type: 'score-warning' as const,
+          timestamp: Date.now(),
+          data: msg,
+        }])
+      } else if (msg.type === 'glamour-asset' && msg.knotId) {
+        setBackgroundEvents(prev => [...prev.slice(-49), {
+          id: `bg-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+          type: 'asset-complete' as const,
+          timestamp: Date.now(),
+          data: msg,
+        }])
+      }
+    })
+  }, [wsSubscribe])
 
   // ─── Load Session History ──────────────────────────────────────
 
@@ -262,6 +302,80 @@ export function AIChatPanel({
               return [...prev, { role: 'assistant', content: assistantText }]
             })
             break
+
+          // ─── Sub-Agent Activity Events ──────────────────────
+          case 'agent_start': {
+            const toolCallId = data.toolCallId as string
+            const activity: AgentActivity = {
+              toolCallId,
+              agentName: data.agentName as string,
+              operation: data.operation as string,
+              status: 'running',
+              events: [{ type: 'start', detail: data.detail as string, ts: Date.now() }],
+            }
+            setAgentActivities(prev => {
+              const next = new Map(prev)
+              next.set(toolCallId, activity)
+              return next
+            })
+            break
+          }
+          case 'agent_progress':
+          case 'agent_prompt':
+          case 'agent_result': {
+            const toolCallId = data.toolCallId as string
+            const evtType = event.replace('agent_', '') as AgentEvent['type']
+            setAgentActivities(prev => {
+              const next = new Map(prev)
+              const existing = next.get(toolCallId)
+              if (existing) {
+                const newActivity = { ...existing, events: [...existing.events, { ...data, type: evtType, ts: Date.now() } as AgentEvent] }
+                next.set(toolCallId, newActivity)
+              }
+              return next
+            })
+            break
+          }
+          case 'agent_complete': {
+            const toolCallId = data.toolCallId as string
+            setAgentActivities(prev => {
+              const next = new Map(prev)
+              const existing = next.get(toolCallId)
+              if (existing) {
+                const newActivity = {
+                  ...existing,
+                  status: 'complete' as const,
+                  events: [...existing.events, { type: 'complete' as const, summary: data.summary as string, ts: Date.now() }],
+                }
+                next.set(toolCallId, newActivity)
+              }
+              return next
+            })
+            break
+          }
+          case 'asset_queued': {
+            const toolCallId = data.toolCallId as string
+            setAgentActivities(prev => {
+              const next = new Map(prev)
+              const existing = next.get(toolCallId)
+              if (existing) {
+                const newActivity = {
+                  ...existing,
+                  events: [...existing.events, {
+                    type: 'asset_queued' as const,
+                    knotType: data.knotType as string,
+                    hash: data.hash as string,
+                    prompt: data.prompt as string,
+                    cached: data.cached as boolean,
+                    ts: Date.now(),
+                  }],
+                }
+                next.set(toolCallId, newActivity)
+              }
+              return next
+            })
+            break
+          }
         }
       }
     } catch (err: any) {
@@ -301,6 +415,8 @@ export function AIChatPanel({
     setToolCalls([])
     setSessionId(null)
     setShowHistory(false)
+    setAgentActivities(new Map())
+    setBackgroundEvents([])
   }, [setMessages, setToolCalls, setSessionId])
 
   // ─── Render ───────────────────────────────────────────────────
@@ -391,25 +507,40 @@ export function AIChatPanel({
         ))}
 
         {/* Tool call cards */}
-        {toolCalls.map(tc => (
-          <div key={tc.id} style={toolCardStyle}>
-            <div
-              style={toolCardHeaderStyle}
-              onClick={() => toggleToolExpanded(tc.id)}
-            >
-              <span style={{ fontSize: 10, color: '#6a6aff' }}>
-                {tc.pending ? '⏳' : '✓'} {formatToolName(tc.name)}
-              </span>
-              <span style={{ fontSize: 10, color: '#4a4a6a' }}>
-                {expandedTools.has(tc.id) ? '▾' : '▸'}
-              </span>
+        {toolCalls.map(tc => {
+          const activity = agentActivities.get(tc.id)
+          return (
+            <div key={tc.id} style={toolCardStyle}>
+              <div
+                style={toolCardHeaderStyle}
+                onClick={() => toggleToolExpanded(tc.id)}
+              >
+                <span style={{ fontSize: 10, color: '#6a6aff' }}>
+                  {tc.pending ? (activity?.status === 'running' ? '⟳' : '⏳') : '✓'} {formatToolName(tc.name)}
+                </span>
+                <span style={{ fontSize: 10, color: '#4a4a6a' }}>
+                  {expandedTools.has(tc.id) ? '▾' : '▸'}
+                </span>
+              </div>
+
+              {/* Sub-agent activity (always visible when running, or when expanded) */}
+              {activity && (activity.status === 'running' || expandedTools.has(tc.id)) && (
+                <AgentActivityCard activity={activity} />
+              )}
+
+              {/* Raw tool result (collapsed by default) */}
+              {expandedTools.has(tc.id) && tc.result && (
+                <pre style={toolDetailStyle}>
+                  {JSON.stringify(tc.result, null, 2)}
+                </pre>
+              )}
             </div>
-            {expandedTools.has(tc.id) && tc.result && (
-              <pre style={toolDetailStyle}>
-                {JSON.stringify(tc.result, null, 2)}
-              </pre>
-            )}
-          </div>
+          )
+        })}
+
+        {/* Background events (score updates, warnings, asset completions) */}
+        {backgroundEvents.map(evt => (
+          <BackgroundEventCard key={evt.id} event={evt} />
         ))}
 
         {/* Streaming indicator */}
